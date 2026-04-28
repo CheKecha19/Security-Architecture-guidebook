@@ -1,51 +1,63 @@
-# Архитектура ИБ. База знаний
+# Security Architecture Guidebook
 
-База знаний по информационной безопасности для профессионального развития и подготовки к собеседованиям на позицию Security Architect / InfoSec Expert.
+> Комплексная база знаний по информационной безопасности для подготовки к собеседованиям на позицию **Security Architect**
 
-## Структура
+## Структура репозитория
 
-| # | Раздел | Статус |
-|---|--------|--------|
-| 01 | [Linux Security](01-linux-security/) | ✅ Завершён (10 статей) |
-| 02 | [CI/CD Security](02-cicd-security/) | ✅ Завершён (10 статей) |
-| 03 | [Методологии](03-methodologies/) | ✅ Завершён (14 статей) |
-| 04 | [Стандарты и фреймворки](04-standards/) | ✅ Завершён (10 статей) |
-| 05 | [Cloud Security](05-cloud-security/) | ✅ Завершён (10 статей) |
-| 06 | [Java Security](06-java-security/) | ✅ Завершён (10 статей) |
-| 07 | [Kafka Security](07-kafka-security/) | ✅ Завершён (10 статей) |
-| 08 | [PostgreSQL Security](08-postgresql-security/) | ✅ Завершён (10 статей) |
-| 09 | [OAuth/OIDC](09-oauth-oidc/) | ✅ Завершён (10 статей) |
-| 10 | [Docker Security](10-docker-security/) | ✅ Завершён (10 статей) |
-| 11 | [AI/LLM Security](11-ai-llm-security/) | ✅ Завершён (10 статей) |
+| # | Раздел | Статей | Статус |
+|---|--------|--------|--------|
+| 01 | [Linux Security](01-linux-security/) | 10 | ✅ Готово |
+| 02 | [CI/CD Security](02-cicd-security/) | 10 | ✅ Готово |
+| 03 | [Methodologies](03-methodologies/) | 14 | ✅ Готово |
+| 04 | [Standards](04-standards/) | 10 | ✅ Готово |
+| 05 | [Cloud Security](05-cloud-security/) | 10 | ✅ Готово |
+| 06 | [Java Security](06-java-security/) | 10 | ✅ Готово |
+| 07 | [Kafka Security](07-kafka-security/) | 10 | ✅ Готово |
+| 08 | [PostgreSQL Security](08-postgresql-security/) | 10 | ✅ Готово |
+| 09 | [OAuth/OIDC](09-oauth-oidc/) | 10 | ✅ Готово |
+| 10 | [Docker Security](10-docker-security/) | 10 | ✅ Готово |
+| 11 | [AI/LLM Security](11-ai-llm-security/) | 10 | ✅ Готово |
 
-## Как использовать
+**Всего: 114 статей по 11 разделам**
 
-1. **links.md** — подборка статей по теме
-2. **summary.md** — выжимка ключевых знаний
-3. **checklist.md** — чек-лист для самопроверки
+## Формат статей
 
-## Прогресс
+Все статьи следуют единому шаблону (PROMPT.md v2.2):
+- **Аналогии** — сложные концепции объясняются через бытовые примеры
+- **Без кода** — только описательные упоминания инструментов
+- **Таблицы сравнения** — минимум 2 таблицы на статью
+- **Чек-листы** — 10 ситуационных вопросов + 10 развёрнутых ответов
+- **Ссылки на стандарты** — NIST, CIS, OWASP, ISO, GDPR, 152-ФЗ
+- **5000+ токенов** — глубокий анализ компромиссов и edge cases
 
-- ✅ Linux Security: 10/10 статей
-- ✅ CI/CD Security: 10/10 статей
-- ✅ Методологии: 14/14 статей
-- ✅ Стандарты и фреймворки: 10/10 статей
-- ✅ Cloud Security: 10/10 статей
-- ✅ Java Security: 10/10 статей
-- ✅ Kafka Security: 10/10 статей
-- ✅ PostgreSQL Security: 10/10 статей
-- ✅ OAuth/OIDC: 10/10 статей
-- ✅ Docker Security: 10/10 статей
-- ✅ AI/LLM Security: 10/10 статей
-- 🟡 Методологии: 0/13 статей
+## Ключевые темы
 
-## Целевая аудитория
+### Технические
+- **Linux Security:** Landlock, AppArmor, SELinux, Namespaces, Seccomp, POSIX ACL, Capabilities, PAM, chroot, PolicyKit
+- **CI/CD Security:** SAST, DAST, SCA, Secrets Management, Supply Chain, Pipeline Security, DevSecOps, IaC, Container Security
+- **Java Security:** Spring Security, OWASP Java, AuthN/AuthZ, Session Management, Input Validation, Secure Coding, Crypto, Dependencies
+- **Kafka Security:** SSL/TLS, SASL, ACL, Quotas, Encryption, Monitoring
+- **PostgreSQL Security:** RBAC, Row-Level Security, Encryption, Audit, Replication Security
+- **Docker Security:** Namespaces, cgroups, Seccomp, AppArmor, Image Scanning, Registry Security, Orchestration
+- **AI/LLM Security:** OWASP Top 10 for LLM, Prompt Injection, Training Poisoning, Supply Chain, RAG Security, GDPR/152-ФЗ, Governance, Enterprise Architecture
 
-- Security Architects
-- InfoSec Specialists
-- DevSecOps Engineers
-- Security Champions
+### Методологии и стандарты
+- **Threat Modeling:** STRIDE, DREAD, PASTA, Attack Trees, MITRE ATT&CK, VAST, Trike, Diamond Model, NIST SP 800-154
+- **Standards:** ISO 27001/27002, NIST CSF, CIS Controls, PCI-DSS, SOC 2, GDPR, FedRAMP, COBIT, ITIL
+- **Cloud Security:** Shared Responsibility, IAM, VPC, Encryption, Monitoring, Containers, Serverless, DLP, Multi-cloud
+- **Identity:** OAuth 2.0, OIDC, PKCE, JWT, JWS/JWE, SAML, LDAP, SCIM, WebAuthn
+
+## Для кого это руководство
+
+- **Security Architect** — подготовка к собеседованиям и систематизация знаний
+- **Security Engineer** — углубление в архитектурные решения
+- **DevSecOps** — понимание security в контексте CI/CD и облаков
+- **Team Lead / CTO** — обзор ландшафта InfoSec для принятия решений
+
+## Лицензия
+
+MIT License — свободное использование с указанием авторства.
 
 ---
 
-_Создано: 2026-04-28_
+*Репозиторий создан при участии AI-ассистента. Все материалы прошли ревью и соответствуют актуальным стандартам безопасности.*
