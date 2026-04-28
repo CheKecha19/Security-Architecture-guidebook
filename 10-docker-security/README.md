@@ -1,22 +1,38 @@
-# Раздел 10: Docker Security
+# Docker Security — Безопасность контейнеров
 
-Этот раздел охватывает безопасность Docker: образы, runtime, контейнеры, сети, secrets.
-
-## Структура раздела
+## Содержание раздела
 
 | # | Статья | Тема |
 |---|--------|------|
-| 01 | [Архитектура Docker](01-docker-architecture.md) | Daemon, containerd, runc |
-| 02 | [Безопасность образов](02-image-security.md) | Сканирование, слои, distroless |
-| 03 | [Container Runtime Security](03-runtime-security.md) | Seccomp, AppArmor, capabilities |
-| 04 | [Docker Network Security](04-network-security.md) | Bridge, overlay, policies |
-| 05 | [Docker Secrets](05-docker-secrets.md) | Управление секретами |
-| 06 | [Docker Compose Security](06-compose-security.md) | Мульти-контейнер |
-| 07 | [Docker Registry Security](07-registry-security.md) | Harbor, подпись образов |
-| 08 | [Rootless Docker](08-rootless-docker.md) | Без root |
-| 09 | [Docker Bench Security](09-bench-security.md) | CIS Docker Benchmark |
-| 10 | [Docker Best Practices](10-docker-best-practices.md) | Итоговые рекомендации |
+| 01 | [Docker Architecture](01-docker-architecture.md) | Namespaces, cgroups, overlayfs, daemon |
+| 02 | [Image Security](02-image-security.md) | Сканирование образов, минимальные base images, multi-stage |
+| 03 | [Container Runtime](03-container-runtime.md) | Seccomp, AppArmor, capabilities, read-only rootfs |
+| 04 | [Network Security](04-network-security.md) | Bridge, host, overlay, macvlan, микросегментация |
+| 05 | [Registry Security](05-registry-security.md) | Harbor, подпись (Cosign/Notary), RBAC, репликация |
+| 06 | [Orchestration Security](06-orchestration-security.md) | Docker Compose, Swarm, secrets, healthcheck |
+| 07 | [Daemon Security](07-daemon-security.md) | Docker socket, TLS, rootless mode, daemon.json |
+| 08 | [Host Security](08-host-security.md) | Container escape, CIS Benchmark, live patching |
+| 09 | [Monitoring & Logging](09-monitoring-logging.md) | Prometheus, Grafana, Falco, ELK, Docker Events |
+| 10 | [Overview](10-docker-security-overview.md) | Пирамида безопасности, Shift Left, Defense in Depth, Zero Trust |
 
----
+## Ключевые темы
 
-_Раздел в процессе заполнения_
+- **Изоляция**: namespace, cgroup, seccomp, AppArmor, capabilities
+- **Supply Chain**: сканирование образов, подпись, SBOM, SLSA
+- **Runtime**: container escape, privileged mode, read-only rootfs
+- **Сеть**: bridge vs overlay vs macvlan, network policies, mTLS
+- **Registry**: Harbor, Cosign, RBAC, репликация
+- **Оркестрация**: Swarm, Compose, secrets management, healthcheck
+- **Мониторинг**: Falco, Prometheus, ELK, Docker Events, alerting
+- **Архитектура**: CIS Benchmark, Shift Left, Zero Trust, Defense in Depth
+
+## Целевая аудитория
+
+- DevOps-инженеры
+- Security Architects
+- Platform Engineers
+- Специалисты по безопасности контейнеров
+
+## Уровень
+
+Intermediate — Advanced. Предполагается знакомство с Docker и Linux.
