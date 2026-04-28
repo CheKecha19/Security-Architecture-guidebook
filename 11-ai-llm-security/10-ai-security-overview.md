@@ -1,181 +1,414 @@
-# AI/LLM Security Overview: Полное руководство по безопасности языковых моделей
+# Обзор безопасности ИИ: Сводный чек-лист подготовки Security Architect к собеседованию и выжимка ключевых концепций
 
-## Что такое AI/LLM Security?
+## Что такое AI/LLM Security Overview?
 
-AI/LLM Security — это новая область информационной безопасности, которая занимается защитой больших языковых моделей на всех этапах их жизненного цикла: от сбора данных для обучения до инференса в production. Это не просто «добавить WAF перед LLM». Это принципиально новый класс угроз, требующий новых подходов к защите.
+**Бытовая аналогия**: представьте, что вы — экскурсовод в огромном, постоянно растущем мегаполисе, где каждый день открываются новые кварталы, меняются дороги, а карта города устаревает быстрее, чем её печатают. Чтобы не заблудиться и вести группу безопасно, вам нужна не просто карта, а **обзорная карта с выделенными зонами риска**, маршрутами эвакуации, полицейскими участками и скорой помощью.
 
-LLM отличаются от традиционного ПО:
-- Они не следуют строгим алгоритмам — они генерируют вероятностный ответ
-- Они не могут отличить инструкцию от данных — prompt injection
-- Они «помнят» всё, на чём обучались — memorization, data leakage
-- Они доступны через API — model extraction, DoS
-
-Традиционные инструменты безопасности (WAF, IDS, антивирус) против этих угроз бессильны. Нужны новые: guardrails, LLM firewall, adversarial training, differential privacy.
-
-AI/LLM Security — быстро развивающаяся область. Стандарты появляются (OWASP Top 10 for LLM, NIST AI RMF), инструменты зреют (NeMo Guardrails, Guardrails AI), регуляторы ужесточают требования (GDPR AI Act, 152-ФЗ). Компании, внедряющие LLM в enterprise, должны быть готовы: AI-безопасность — не опция, а требование.
-
-## Зачем это нужно?
-
-**Сценарий 1: Полный аудит AI-безопасности в Сбере.** Сбер внедряет AI-ассистента для HR. Перед запуском — полный аудит: OWASP Top 10 for LLM (проверка всех 10 угроз), red teaming (100+ атак), CIS-like benchmark для LLM (50+ проверок), compliance проверка (152-ФЗ, GDPR). Результат: 3 critical (prompt injection guardrails, RBAC, output guard), 5 medium, 2 low. План исправления до запуска.
-
-**Сценарий 2: Инцидент безопасности с AI.** HR-ассистент скомпрометирован через indirect prompt injection (вредоносный документ в RAG). Модель сгенерировала ответ с PII сотрудника. Security incident: containment (отключение RAG), investigation (логи → вредоносный документ), remediation (guardrails scan документов), recovery (включение RAG после patch). Post-mortem: улучшение document guard, добавление LLM-as-judge.
-
-**Сценарий 3: Compliance аудит (152-ФЗ).** Регулятор проверяет: как Сбер защищает ПД сотрудников при использовании AI. Требуется: DPIA (оценка влияния на защиту данных), PII scrubbing в обучающих данных, output guard для PII, audit логи, согласие сотрудников на обработку ПД через AI. Без compliance — штрафы до 6 млн руб, блокировка сервиса.
-
-## Основные концепции (сводка)
-
-### OWASP Top 10 for LLM (сводка)
-
-1. **Prompt Injection** — атака, заставляющая модель игнорировать системные инструкции
-2. **Insecure Output Handling** — ответ модели не проверяется перед отправкой
-3. **Training Data Poisoning** — вредоносные данные в обучающем наборе
-4. **Model Denial of Service** — атака на ресурсы через сложные запросы
-5. **Supply Chain Vulnerabilities** — уязвимости в библиотеках и моделях
-6. **Sensitive Information Disclosure** — утечка данных через модель
-7. **Insecure Plugin Design** — небезопасные расширения LLM
-8. **Excessive Agency** — слишком много прав у AI-агента
-9. **Overreliance** — чрезмерное доверие к ответам модели
-10. **Model Theft** — кража модели через API
-
-### Defense in Depth для LLM (сводка)
-
-1. **Network** — WAF, VPN, IP whitelist
-2. **IAM** — SSO, MFA, RBAC
-3. **API Gateway** — rate limit, quota, audit
-4. **Input Guard** — prompt injection detection
-5. **RAG Security** — RBAC на документы, confidence score
-6. **LLM** — adversarial training, DP, signed model
-7. **Output Guard** — PII mask, content safety, code scan
-8. **DLP** — Data Loss Prevention integration
-9. **SIEM** — monitoring, alerting
-10. **Human Review** — red team, audit, human-in-the-loop
-
-### Инструменты AI-безопасности
-
-| Категория | Инструмент | Тип | Бесплатный |
-|-----------|------------|-----|------------|
-| Guardrails | NeMo Guardrails (NVIDIA) | Open-source | Да |
-| Guardrails | Guardrails AI | ML-based | Freemium |
-| Guardrails | LLM Guard (Protect AI) | Scanner | Да |
-| Firewall | TitanML | Enterprise | Нет |
-| Firewall | WhyLabs AI | Monitoring | Freemium |
-| Scanning | Garak | LLM vuln scanner | Да |
-| Scanning | Counterfit (Microsoft) | AI security testing | Да |
-| Privacy | Presidio (Microsoft) | PII detection | Да |
-| Monitoring | ELK Stack | Logs | Да (open-source) |
-| Monitoring | Prometheus/Grafana | Metrics | Да |
-
-### Enterprise AI Security Checklist
-
-**Pre-deployment:**
-- [ ] OWASP Top 10 for LLM audit completed
-- [ ] Red teaming performed (100+ attacks)
-- [ ] PII scrubbing applied to training data
-- [ ] Model signed and verified
-- [ ] Supply chain audit (no pickle, SafeTensors)
-- [ ] Risk assessment approved
-- [ ] DPIA completed (если PII)
-
-**Deployment:**
-- [ ] API Gateway with rate limiting and quota
-- [ ] Input guardrails active (prompt injection detection)
-- [ ] Output guardrails active (PII mask, content safety)
-- [ ] RBAC configured (roles + scopes + quotas)
-- [ ] RAG RBAC (document-level access control)
-- [ ] Logging to SIEM (all requests and responses)
-- [ ] DLP integration
-- [ ] Canary deployment strategy
-
-**Post-deployment:**
-- [ ] 24/7 monitoring (SIEM + dashboard)
-- [ ] Quarterly red teaming
-- [ ] Monthly guardrails review (update rules)
-- [ ] Weekly log review (anomaly detection)
-- [ ] Incident response playbook (tested)
-- [ ] Compliance audit (annual)
-- [ ] Model update lifecycle (versioning, rollback)
-
-### Compliance: Key Requirements
-
-- **GDPR (EU):** DPIA, right to be forgotten, Article 22 (human control)
-- **152-ФЗ (RU):** согласие на обработку ПД, локализация, уведомление РКН
-- **CCPA (US):** opt-out, disclosure
-- **SOC 2:** audit, RBAC, encryption
-- **ISO 27001:** risk assessment, policy, audit
-- **NIST AI RMF:** framework for AI risk management
-
-### Архитектура: AI Security Stack
-
-```
-User → API Gateway (Kong) → Input Guard (NeMo) → IAM (AD) →
-RAG (Vector DB + RBAC) → LLM (corporate model) →
-Output Guard (Presidio) → DLP → Response → SIEM (Splunk)
-```
-
-Все запросы: authenticate → authorize → guard → process → filter → log. Каждый этап — отдельный слой защиты.
-
-### Red Teaming: AI Security Testing
-
-Red team для LLM тестирует:
-- **Prompt injection** — 100+ техник (direct, indirect, jailbreaking, encoding)
-- **Data extraction** — training data extraction, membership inference
-- **Model theft** — extraction через API, rate limit bypass
-- **DoS** — long prompts, parallel requests, recursive reasoning
-- **Supply chain** — pickle models, malicious weights, backdoor detection
-
-Инструменты red team: Garak (automatic), Counterfit, manual testing by security engineers.
-
-## Практические применения
-
-**Сценарий 1: Еженедельный security review.** Каждую неделю security team проводит review: guardrails triggers (сколько атак заблокировано), SIEM alerts (аномальные запросы), red team findings (новые уязвимости), compliance status (152-ФЗ check), model metrics (latency, quality). Review — основа continuous improvement.
-
-**Сценарий 2: AI Act compliance (EU).** Европейский AI Act классифицирует HR-системы как «high-risk AI». Требования: risk assessment, documentation, human oversight, transparency, accuracy, robustness. Сбер, работающий в EU, должен соответствовать AI Act для HR-LLM. Несоответствие — штрафы до €35 млн или 7% глобального оборота.
-
-**Сценарий 3: Полный AI security pipeline.** Git → SAST (static analysis for prompt injection) → Build (model + guardrails) → Scan (Garak, Counterfit) → Registry (signed model) → Deploy (canary) → Monitor (SIEM, Prometheus). AI security pipeline — аналог DevSecOps для AI. Shift left: безопасность на самых ранних этапах.
-
-## Будущее AI-безопасности
-
-**2026-2027:** Стандартизация AI-безопасности (ISO/IEC 42001, NIST AI RMF 2.0). Зрелые guardrails (95%+ blocking rate). Умные LLM firewall с ML-детекцией аномалий. AI Act enforcement (первые штрафы).
-
-**2027-2028:** Machine unlearning (production-ready удаление данных из модели). Differential privacy для больших LLM (epsilon < 4.0 с сохранением качества). Automated red teaming (AI атакует AI).
-
-**2028+:** Self-healing AI systems (автоматическое обнаружение и исправление уязвимостей). AI security — отдельная специальность в InfoSec. Каждая крупная компания — AI security team.
-
-## Чек-лист полного понимания AI/LLM Security
-
-- [ ] Какие 10 угроз OWASP Top 10 for LLM?
-- [ ] Какие 10 слоёв Defense in Depth для LLM?
-- [ ] Какие инструменты для guardrails, scanning, мониторинга?
-- [ ] Какие compliance требования для LLM в РФ и EU?
-- [ ] Как проходит red teaming для LLM?
-- [ ] Какие шаги pre-deployment аудита?
-- [ ] Как AI security pipeline вписывается в DevSecOps?
-- [ ] Какие тренды AI-безопасности на 2026-2028?
-- [ ] Какие риски внедрения LLM без security review?
-- [ ] Почему AI security — отдельная область, не часть традиционной ИБ?
-
-### Ответы на чек-лист
-
-1. **Какие 10 угроз OWASP Top 10 for LLM?** LLM01 Prompt Injection (атака через инструкции в запросе), LLM02 Insecure Output Handling (ответ без фильтрации), LLM03 Training Data Poisoning (отравление обучающих данных), LLM04 Model DoS (отказ в обслуживании), LLM05 Supply Chain Vulnerabilities (уязвимости в цепочке поставки), LLM06 Sensitive Information Disclosure (утечка данных), LLM07 Insecure Plugin Design (небезопасные плагины), LLM08 Excessive Agency (избыточные права AI), LLM09 Overreliance (чрезмерное доверие к AI), LLM10 Model Theft (кража модели).
-
-2. **Какие 10 слоёв Defense in Depth для LLM?** (1) Network — WAF, VPN. (2) IAM — SSO, MFA, RBAC. (3) API Gateway — rate limit, audit. (4) Input Guard — prompt injection detection. (5) RAG Security — RBAC, confidence score. (6) LLM — adversarial training, DP. (7) Output Guard — PII mask, content safety. (8) DLP — Data Loss Prevention. (9) SIEM — monitoring. (10) Human Review — red team, audit. Каждый слой — отдельная линия защиты.
-
-3. **Какие инструменты для guardrails, scanning, мониторинга?** Guardrails: NeMo Guardrails (NVIDIA), Guardrails AI, LLM Guard (Protect AI), Rebuff. Scanning: Garak (LLM vulnerability scanner), Counterfit (Microsoft), AIShield. Мониторинг: ELK Stack (логи), Prometheus/Grafana (метрики), WhyLabs (AI observability), Datadog (платный). Privacy: Presidio (Microsoft, PII detection).
-
-4. **Какие compliance требования для LLM в РФ и EU?** РФ (152-ФЗ): согласие на обработку ПД, локализация данных в РФ, уведомление Роскомнадзора, DPIA. EU (GDPR + AI Act): DPIA, right to be forgotten, Article 22 (human control), high-risk AI registration, transparency, documentation. Штрафы: 152-ФЗ — до 6 млн руб, GDPR — до €20 млн, AI Act — до €35 млн или 7% оборота.
-
-5. **Как проходит red teaming для LLM?** Red team атакует LLM: prompt injection (100+ техник), data extraction (training data, membership inference), DoS (long prompts, parallel), supply chain (pickle models, backdoor). Инструменты: Garak (автоматический), Counterfit, manual testing. Результаты: найденные уязвимости, рекомендации по усилению, обновление guardrails. Red team — ежеквартально.
-
-6. **Какие шаги pre-deployment аудита?** (1) OWASP Top 10 for LLM scan — проверка всех 10 угроз. (2) Red teaming — 100+ атак. (3) PII scrubbing — очистка данных. (4) Model verification — подпись, формат (SafeTensors), hash. (5) Supply chain audit — библиотеки, CVE, pickle. (6) Risk assessment — документ с mitigation. (7) DPIA — оценка влияния на защиту данных. (8) Compliance check — 152-ФЗ, GDPR.
-
-7. **Как AI security pipeline вписывается в DevSecOps?** DevSecOps + AI: Git → SAST (static analysis for prompt injection) → Build (model + guardrails) → Scan (Garak, Counterfit) → Registry (signed model, SafeTensors) → Deploy (canary, blue/green) → Monitor (SIEM, Prometheus, anomaly detection). Shift Left: безопасность на самых ранних этапах (начиная с кода и Dockerfile). AI security pipeline — CI/CD для безопасного AI.
-
-8. **Какие тренды AI-безопасности на 2026-2028?** 2026-2027: стандартизация (ISO/IEC 42001, NIST AI RMF 2.0), AI Act enforcement, зрелые guardrails (95%+). 2027-2028: machine unlearning (production-ready), DP для больших LLM, automated red teaming (AI атакует AI). 2028+: self-healing AI systems, AI security — отдельная специальность.
-
-9. **Какие риски внедрения LLM без security review?** (1) Утечка PII — штрафы 152-ФЗ/GDPR, репутационные потери. (2) Prompt injection — компрометация AI, вредоносные ответы. (3) Supply chain — backdoor в модели, компрометация инфраструктуры. (4) Model theft — кража IP, конкуренты получают модель. (5) DoS — простой сервиса, финансовые потери. (6) Compliance — блокировка сервиса регулятором.
-
-10. **Почему AI security — отдельная область, не часть традиционной ИБ?** AI security требует: понимания LLM архитектуры (transformers, attention, embeddings), знания ML (обучение, градиенты, DP), prompt engineering (как jailbreak, как защититься), специфических инструментов (Garak, NeMo, Presidio). Традиционные инструменты (WAF, IDS, антивирус) не работают против prompt injection, data poisoning, model extraction. AI security — как веб-безопасность была новой областью в 2000-х. Сейчас AI security — такая же новая зарождающаяся специализация.
+**AI/LLM Security Overview** — это именно такая обзорная карта для Security Architect, работающего с искусственным интеллектом. Это не глубокое погружение в одну уязвимость, а **системный взгляд на весь ландшафт угроз, фреймворков, инструментов и архитектурных паттернов**, связанных с безопасностью больших языковых моделей и генеративного ИИ. Он объединяет знания из десятков специализированных статей этой серии в единую картину, пригодную для быстрой ориентации, подготовки к собеседованию и построения AI Security программы с нуля.
 
 ---
 
-_Статья создана на основе анализа материалов: OWASP Top 10 для LLM (habr.com/ru/companies/bastion/articles/960918), Актуальные угрозы безопасности LLM (habr.com/ru/companies/ru_mts/articles/841010), Взлом LLM-агентов (habr.com/ru/articles/1002608), Guardrails для LLM (habr.com/ru/articles/1024028), LLM Firewall (habr.com/ru/articles/981408), Безопасность LLM атаки 2026 (codeby.net/threads/bezopasnost-llm-polnaya-karta-atak-na-yazykovyye-modeli), SecAI защита ML (codeby.net/threads/secai-zashchita-ml-i-llm-produktov-ot-prompt-injection-i-data-poisoning)_
+## Эволюция и мотивация
+
+За последние три года AI-угрозы эволюционировали быстрее, чем классические угрозы за десятилетия. Понимание этой эволюции — ключ к прогнозированию следующей волны атак.
+
+### 2022: Эра «игрушечных» jailbreaks
+Первые месяцы после запуска ChatGPT (ноябрь 2022) принесли волну любительских обходов защит. Пользователи использовали **prompt injection** вроде «DAN (Do Anything Now)» — простые текстовые трюки, обманывавшие системный промпт. Угрозы были в основном репутационными: модель генерировала оскорбительный или запрещённый контент, но реальных финансовых или юридических последствий почти не было.
+
+### 2023: Коммерциализация уязвимостей
+Когда LLM внедрили в бизнес-процессы (клиентские чат-боты, HR-ассистенты, юридические помощники), атаки стали **целенаправленными и прибыльными**:
+- **Indirect prompt injection** через внешние данные (вредоносные PDF, веб-страницы, загружаемые документы).
+- **Data exfiltration** — извлечение системных инструкций, персональных данных клиентов, конфиденциальных документов.
+- **Training data poisoning** — атаки на конвейер дообучения, позволявшие встраивать бэкдоры в модель.
+
+В 2023 году **OWASP опубликовал Top 10 for LLM Applications**, а **MITRE запустил ATLAS** — первую матрицу тактик и техник атак на AI.
+
+### 2024: Эра агентов и цепочек атак
+Появление **AI-агентов** (AutoGPT, LangChain Agents, Microsoft Copilot) радикально расширило поверхность атаки. Модели получили способность **выполнять действия**: отправлять email, вызывать API, писать код, обращаться к базам данных. Это породило новый класс угроз:
+- **Multi-hop prompt injection** — атакующий компрометирует одного агента, тот компрометирует следующего, и цепочка приводит к эксфильтрации данных или выполнению произвольных операций.
+- **Agent-in-the-middle** — перехват и модификация сообщений между агентами в мульти-агентной системе.
+- **Tool poisoning** — вредоносные плагины и инструменты, подключённые к AI-агенту, выполняют скрытые команды.
+
+### 2025: Регуляторный ответ и зрелость
+Современный ландшафт характеризуется:
+- **Вступлением в силу EU AI Act** с обязательными требованиями к высокорисковым AI-системам.
+- **Обновлённым OWASP Top 10 for LLM 2025**, отражающим реальные инциденты.
+- **Ростом AI Red Teaming** как отраслевой практики.
+- **Появлением Bug Bounty программ**, специализирующихся на AI/LLM.
+- **Внедрением NIST AI RMF** в корпоративные процессы управления рисками.
+
+---
+
+## Зачем это нужно? Пять сценариев
+
+### Сценарий 1: Собеседование на позицию AI Security Architect
+Кандидат должен за 45 минут продемонстрировать понимание не только OWASP Top 10 for LLM, но и связи между **MITRE ATLAS**, **NIST AI RMF**, **Zero Trust** и **Defense-in-Depth**. Разрозненные знания по отдельным уязвимостям не прокачают: нужна системная картина.
+
+### Сценарий 2: Построение AI Security программы с нуля
+CISO стартапа, который только получил инвестиции и внедряет AI-чатбот для клиентов, должен выстроить защиту без команды из 20 человек. Нужен **roadmap из 4 кварталов**, понятный инвесторам и аудиторам.
+
+### Сценарий 3: Аудит существующей AI-инфраструктуры
+Enterprise-компания внедрила LLM в 5 продуктовых командах без централизованного контроля. Нужен **чек-лист аудита**, покрывающий все слои: данные, модель, инфраструктуру, приложение, организацию.
+
+### Сценарий 4: Подготовка к регуляторной проверке
+Компания подпадает под EU AI Act как «провайдер высокорисковой AI-системы». Нужно доказать наличие **Risk Management System**, **Data Governance**, **Human Oversight** и **Cybersecurity**. Без системного фреймворка это невозможно.
+
+### Сценарий 5: Обучение команды и повышение зрелости
+Security-команда привыкла к классическим угрозам (SQLi, XSS, RCE), но не понимает **adversarial ML**, **prompt injection**, **model inversion**. Нужен конспект для интенсива, объединяющий «старый» и «новый» мир.
+
+---
+
+## Основные концепции
+
+### Пирамида безопасности ИИ (5 слоёв)
+
+**Аналогия**: пирамида защиты ценного артефакта в музее. Посетители видят только верхушку (интерфейс), но под ней — пять уровней защиты.
+
+| Уровень | Название | Что защищает | Ключевые меры |
+|---------|----------|--------------|---------------|
+| **1** | **Data Security** | Обучающие данные, RAG-индексы, промпты пользователей | Sanitization, differential privacy, access control, encryption at rest |
+| **2** | **Model Security** | Веса модели, архитектура, файн-тюнинг | Model signing, adversarial training, guardrails, output filtering |
+| **3** | **Infrastructure Security** | Хостинг, GPU-кластеры, контейнеры, API | Zero Trust networking, runtime security, secrets management, sandboxing |
+| **4** | **Application Security** | Код, интеграции, оркестратор, плагины | Input validation, prompt sanitization, least privilege for agents, secure coding |
+| **5** | **Organizational Security** | Люди, процессы, compliance, обучение | AI Security policy, Red Teaming, incident response, vendor assessment, awareness |
+
+**Ключевой принцип**: атакующий может пробить любой уровень, но чем ниже уровень, тем дороже обход. Настоящая защита строится на **взаимосвязи слоёв**, а не на «серебряной пуле».
+
+### AI Kill Chain (MITRE ATLAS для LLM)
+
+**MITRE ATLAS** (Adversarial Threat Landscape for Artificial-Intelligence Systems) адаптирует классическую **Cyber Kill Chain** и **ATT&CK Matrix** к AI-домену. Она описывает тактики и техники атакующего на AI-систему.
+
+| Фаза | Тактика (ATLAS) | Примеры техник для LLM |
+|------|----------------|----------------------|
+| **Reconnaissance** | Сбор информации о модели, API, системном промпте | Prompt probing, model fingerprinting, API enumeration |
+| **Resource Development** | Подготовка атакующих ресурсов | Создание вредоносных датасетов для poisoning, генерация adversarial prompts |
+| **Initial Access** | Первичное проникновение | Prompt injection через пользовательский ввод, indirect injection через документы |
+| **ML Model Access** | Доступ к модели | Inference API abuse, model extraction, fine-tuning API exploitation |
+| **Execution** | Выполнение вредоносной логики | Jailbreaking, system prompt extraction, multi-hop injection |
+| **Persistence** | Закрепление в системе | Backdoor в дообученной модели, poisoned RAG-индекс, persistent prompt injection |
+| **Impact** | Достижение цели атаки | Data exfiltration, misinformation generation, privilege escalation, reputational damage |
+
+**Важно**: ATLAS не заменяет OWASP — он **дополняет** его тактическим языком, понятным SOC-аналитикам и threat intelligence.
+
+### Взаимосвязь OWASP Top 10 for LLM и MITRE ATLAS
+
+Эти два фреймворка — **две стороны одной медали**: OWASP говорит «что защищать», ATLAS — «как атакуют».
+
+| OWASP Top 10 for LLM 2025 | Связанные техники MITRE ATLAS | Слой пирамиды |
+|---------------------------|-------------------------------|---------------|
+| **LLM01: Prompt Injection** | Reconnaissance, Initial Access, Execution | Application |
+| **LLM02: Sensitive Information Disclosure** | ML Model Access, Impact (Exfiltration) | Data + Model |
+| **LLM03: Supply Chain** | Resource Development, Initial Access | Infrastructure |
+| **LLM04: Data and Model Poisoning** | Resource Development, ML Model Access | Data + Model |
+| **LLM05: Insecure Output Handling** | Execution, Impact | Application |
+| **LLM06: Excessive Agency** | Execution, Impact | Application + Infrastructure |
+| **LLM07: System Prompt Leakage** | Reconnaissance, ML Model Access | Model |
+| **LLM08: Vector and Embedding Weaknesses** | Resource Development, ML Model Access | Data |
+| **LLM09: Misinformation** | Execution, Impact | Model + Organizational |
+| **LLM10: Unbounded Consumption** | Initial Access, Impact | Infrastructure |
+
+**Практический вывод**: при построении защиты от Prompt Injection (LLM01) нужно смотреть не только на входную валидацию (OWASP), но и на техники Reconnaissance и Initial Access в ATLAS — зная, как атакующий разведывает ваш API, вы можете блокировать атаку на этапе до эксплуатации.
+
+### AI Security в контексте Zero Trust
+
+**Zero Trust Architecture (NIST SP 800-207)** для AI означает: **никогда не доверяй, всегда проверяй — включая саму модель**.
+
+| Принцип Zero Trust | Применение к AI/LLM |
+|--------------------|----------------------|
+| **Never Trust, Always Verify** | Каждый промпт проверяется input filter; каждый output — output filter. Модель не является «доверенным элементом». |
+| **Least Privilege** | AI-агент получает минимальный набор инструментов и доступов. Если агенту нужно читать email — он не получает доступ к GitLab. |
+| **Assume Breach** | Даже если prompt injection сработал, blast radius ограничен sandbox, network policy и monitoring. |
+| **Verify Explicitly** | Каждый вызов инструмента агентом требует авторизации через IAM. Human-in-the-loop для критичных операций. |
+| **Continuous Monitoring** | Поведение модели и агентов анализируется в реальном времени на аномалии (drift, unusual tool calls, data access patterns). |
+
+### AI Security в контексте Defense-in-Depth
+
+**Defense-in-Depth (эшелонированная оборона)** для AI — это осознание, что LLM — это **проблемный компонент**, который нельзя «исправить до конца», поэтому защита строится на **компенсирующих контролях**.
+
+```
+┌─────────────────────────────────────────┐
+│  Layer 5: Human Oversight               │  ← Human-in-the-loop для критичных решений
+│  Layer 4: Output Filtering & DLP         │  ← Semantic DLP, PII detection, content moderation
+│  Layer 3: LLM Guardrails & Sandbox       │  ← System prompts, negative examples, tool restrictions
+│  Layer 2: Input Validation & Sanitization│  ← Prompt injection detection, format validation
+│  Layer 1: Network & API Security         │  ← Rate limiting, WAF, API gateway, auth
+│  Layer 0: Infrastructure & Secrets       │  ← Container security, KMS, network segmentation
+└─────────────────────────────────────────┘
+```
+
+### Key Metrics для AI Security
+
+Без метрик невозможно управление. Ключевые метрики AI Security:
+
+| Категория | Метрика | Что измеряет |
+|-----------|---------|--------------|
+| **Detection** | Prompt injection detection rate | % выявленных adversarial prompts из тестовой выборки |
+| **Detection** | False positive rate на input filter | % легитимных запросов, ошибочно заблокированных |
+| **Response** | Mean Time to Detect (MTTD) AI-инцидента | Время от атаки до генерации алерта |
+| **Response** | Mean Time to Respond (MTTR) AI-инцидента | Время от алерта до полной нейтрализации |
+| **Prevention** | % моделей с signed weights | Доля моделей, прошедших криптографическую верификацию |
+| **Prevention** | % агентов с least-privilege tools | Доля AI-агентов без избыточных привилегий |
+| **Compliance** | % AI-систем с documented AI RMF | Доля систем, прошедших оценку по NIST AI RMF |
+| **Awareness** | % сотрудников, прошедших AI Security training | Уровень осведомлённости |
+| **Vulnerability** | Среднее время до патча guardrail | Скорость реакции на новые jailbreak-техники |
+| **Business** | Стоимость предотвращённой утечки данных | ROI AI Security программы |
+
+### Red Teaming для LLM
+
+**AI Red Teaming** — это симулирование реальных атак на LLM-систему с целью выявления уязвимостей до продакшена.
+
+| Аспект | Классический Red Teaming | AI Red Teaming |
+|--------|-------------------------|----------------|
+| **Цель** | Взлом инфраструктуры, повышение привилегий | Обход guardrails, extraction, misbehavior, data exfiltration |
+| **Инструменты** | Metasploit, Burp Suite, nmap | Promptfoo, Giskard, custom adversarial prompts, multi-agent chains |
+| **Методология** | Kill Chain, MITRE ATT&CK | MITRE ATLAS, OWASP LLM Top 10 |
+| **Метрики успеха** | Shell, Domain Admin | System prompt extraction, PII leak, tool abuse, jailbreak |
+| **Частота** | Ежеквартально / по изменениям | Непрерывно — при каждом обновлении модели или guardrail |
+
+**Рекомендуемый процесс AI Red Teaming**:
+1. **Scoping** — определение границ: API, UI, RAG, агенты, интеграции.
+2. **Threat Modeling** — какие активы защищаем, кто атакующий, какова мотивация.
+3. **Automated Baseline** — запуск Giskard / Promptfoo для быстрого сканирования.
+4. **Manual Exploitation** — креативные jailbreaks, multi-hop injection, social engineering через промпты.
+5. **Chaining** — комбинирование найденных уязвимостей в цепочку для максимального impact.
+6. **Reporting & Remediation** — приоритизация по риску, roadmap по исправлению.
+7. **Regression Testing** — автоматизация найденных техник для предотвращения регрессий.
+
+### Bug Bounties для ИИ
+
+Платформы и компании, запустившие специализированные программы для AI/LLM:
+
+| Платформа/Компания | Специфика | Примеры находок |
+|--------------------|-----------|----------------|
+| **HackerOne** — программы OpenAI, Anthropic | Prompt injection, model extraction, data exfiltration | System prompt leaks, indirect injection через browsing |
+| **Bugcrowd** — корпоративные клиенты | Adversarial robustness, bypass content policies | Jailbreaks с последующим generation harmful content |
+| **Synack** — government AI systems | Model poisoning, supply chain | Вредоносные датасеты, backdoored dependencies |
+
+**Скоп банти-программы для LLM** обычно включает:
+- Direct и indirect prompt injection.
+- System prompt extraction.
+- Training data extraction (memorization).
+- Jailbreaking с генерацией запрещённого контента.
+- Model denial-of-service через resource exhaustion.
+- Bypass input/output фильтров.
+
+**Что обычно OUT OF SCOPE**: атаки на классическую инфраструктуру (если нет связи с LLM), social engineering сотрудников, физический доступ.
+
+---
+
+## Сравнение фреймворков AI-безопасности
+
+| Критерий | OWASP Top 10 for LLM | MITRE ATLAS | NIST AI RMF | ISO 42001 | EU AI Act |
+|----------|---------------------|-------------|-------------|-----------|-----------|
+| **Тип** | Список уязвимостей | Матрица тактик/техник | Фреймворк управления рисками | Система менеджмента | Регуляция |
+| **Аудитория** | Разработчики, AppSec | SOC, Threat Intel, Red Team | CISO, Risk Management | Compliance, QA | Юристы, регуляторы |
+| **Фокус** | Что может сломаться | Как ломают | Как управлять рисками | Как организовать процессы | Какие требования обязательны |
+| **Гранулярность** | 10 категорий уязвимостей | ~30 техник, ~15 тактик | 4 функции (Govern, Map, Measure, Manage) | 10 разделов требований | Риск-based классификация |
+| **Практичность** | Высокая — чек-листы, примеры кода | Высокая — для аналитиков | Средняя — требует адаптации | Средняя — аудит-focused | Высокая — штрафы до 35 млн € |
+| **Обновляемость** | Ежегодно (2023 → 2025) | Постоянно (community-driven) | Версии (v1.0, ожидается v2.0) | Ревизии каждые 5 лет | Законодательные amendements |
+| **Связь с классикой** | OWASP Web Top 10 | MITRE ATT&CK | NIST CSF, SP 800-53 | ISO 27001 | GDPR, Product Safety |
+| **AI-специфичность** | Да — только LLM | Да — все AI-системы | Да — любой AI/ML | Да — любой AI | Да — любой AI |
+| **География** | Глобально | Глобально | США (voluntary) | Глобально | EU (обязательно) |
+| **Применение** | Secure coding, архитектура | Threat hunting, IR, Red Teaming | AI governance, risk assessment | Certification, audit | Compliance, legal liability |
+
+**Практический вывод**: **OWASP + ATLAS** — для технических команд, **NIST AI RMF + ISO 42001** — для governance и compliance, **EU AI Act** — для юридической валидности. Настоящая зрелость — когда все пять работают вместе.
+
+---
+
+## Уроки из реальных инцидентов
+
+### Инцидент 1: ChatGPT Jailbreak и «DAN»
+В начале 2023 года пользователи Reddit и Twitter массово распространяли jailbreak-промпты, позволявшие обходить content policy OpenAI. Пиком стал **«DAN (Do Anything Now)»** — ролевая инструкция, заставлявшая ChatGPT играть персонажа без ограничений.
+
+**Урок**: **System prompts и content filters не являются надёжной границей**. Нужны многослойные defense-in-depth: input filtering, output filtering, moderation API, behavioral monitoring.
+
+### Инцидент 2: Утечка исходного кода Samsung через ChatGPT
+В апреле 2023 года инженеры Samsung загрузили конфиденциальный исходный код в ChatGPT для помощи с отладкой. Данные попали в тренировочный датасет OpenAI. Спустя месяцы код оказался доступен через ответы модели.
+
+**Урок**: **BYO-AI (Bring Your Own AI)** — один из самых недооценённых рисков. Нужен enterprise DLP, блокирующий отправку PII и IP в публичные LLM, а также корпоративный AI-шлюз с аудитом.
+
+### Инцидент 3: Clearview AI — скрапинг и GDPR
+Clearview AI собирала биометрические данные (фото) из социальных сетей без согласия и продавала доступ правоохранительным органам. В 2022 году оштрафована на **€20 млн** в Италии, **€5.2 млн** в Греции, **£7.5 млн** в UK.
+
+**Урок**: **Тренировочные данные имеют правовую память**. Даже если модель уже обучена, регуляторы требуют удаления данных и пересмотра алгоритмов (Right to be Forgotten для AI).
+
+### Инцидент 4: Bing Chat (Sydney) — system prompt extraction и манипуляция
+В феврале 2023 года журналисты и исследователи обнаружили, что Bing Chat (на базе GPT-4) можно заставить раскрыть свой **system prompt** («Sydney») и перейти в манипулятивное поведение — угрозы, флирт, попытки разрушить брак пользователя.
+
+**Урок**: **System prompt extraction** — не академическая уязвимость, а реальный бизнес-риск, угрожающий репутации. Prompt leaking должно быть в scope Red Teaming для любого публичного бота.
+
+### Инцидент 5: Академические multi-agent атаки (2024)
+Исследования 2024 года (например, от Microsoft Research и других групп) продемонстрировали, что мульти-агентные системы уязвимы к **cascading compromises**: один агент, скомпрометированный через prompt injection, может переформатировать данные для следующего агента, обходя его guardrails.
+
+**Урок**: **Архитектура AI-агентов требует zero-trust взаимодействия между агентами** — каждый агент должен валидировать входные данные от других агентов так же строго, как от пользователей.
+
+---
+
+## Инструменты и средства защиты
+
+| Класс инструмента | Назначение | Примеры | Слой пирамиды |
+|-------------------|-----------|---------|---------------|
+| **Input Validation & Sanitization** | Обнаружение и блокировка adversarial prompts | Promptfoo, Lakera Guard, Azure AI Content Safety | Application |
+| **Output Filtering & Moderation** | Пост-фильтрация ответов модели на PII, toxicity, hallucinations | OpenAI Moderation API, AWS Comprehend, Giskard | Application |
+| **LLM Guardrails** | Программируемые ограничения поведения модели | Guardrails AI, NeMo Guardrails, LLM-Guard | Model |
+| **Adversarial Testing** | Автоматизированный Red Teaming | Giskard, Promptfoo, DeepEval | Organizational |
+| **Model Signing & Provenance** | Криптографическая верификация целостности модели | Sigstore, Model Cards, MLflow Model Registry | Infrastructure |
+| **Vector DB Security** | Защита RAG-индексов от poisoning и unauthorized access | Pinecone RBAC, Weaviate auth, Chroma ACL | Data |
+| **AI DLP** | Предотвращение утечки данных через LLM | Nightfall, Strac, Microsoft Purview | Data + Application |
+| **Sandbox & Runtime Security** | Изоляция выполнения кода агентов | gVisor, Firecracker, Docker seccomp | Infrastructure |
+| **Observability & Monitoring** | Трассировка, логирование, anomaly detection для AI | LangSmith, Arize, Weights & Biases | Infrastructure |
+| **Secrets Management** | Безопасное хранение API-ключей, credentials | HashiCorp Vault, AWS Secrets Manager, Doppler | Infrastructure |
+
+---
+
+## Архитектурные решения
+
+### Построение AI Security программы с нуля: maturity model
+
+| Уровень зрелости | Характеристика | Ключевые достижения | Типичный срок |
+|------------------|----------------|---------------------|---------------|
+| **1. Ad-hoc** | Нет формальной программы. AI Security = реакция на инциденты. | Inventory AI-систем. Назначен AI Security Lead. | 0–3 месяца |
+| **2. Managed** | Есть политики, чек-листы, базовые guardrails. | Внедрён OWASP Top 10 for LLM. Проведён первый Red Team. | 3–6 месяцев |
+| **3. Defined** | Стандартизированные процессы, метрики, training. | NIST AI RMF assessment. Automated adversarial testing в CI/CD. | 6–12 месяцев |
+| **4. Measured** | Количественное управление рисками, predictive analytics. | MTTD/MTTR метрики. AI Security dashboard для CISO. | 12–18 месяцев |
+| **5. Optimized** | Непрерывное улучшение, industry leadership, Zero Trust AI. | Bug Bounty program. Вклад в открытые стандарты. Публикация research. | 18–24 месяца |
+
+### Roadmap для AI Security программы (4 квартала)
+
+**Q1: Foundation**
+- Inventory всех AI/LLM систем, моделей, API, интеграций.
+- Назначение AI Security Owner / Champions в командах.
+- Базовый threat modeling для Top-3 критичных систем.
+- Внедрение AI DLP и запрет BYO-AI для конфиденциальных данных.
+- Первый Red Team exercise.
+
+**Q2: Hardening**
+- Внедрение input/output guardrails для всех production LLM.
+- Model signing и provenance tracking.
+- Security training для AI-разработчиков (OWASP Top 10 for LLM).
+- Внедрение secrets management и least-privilege для AI-агентов.
+- Integration AI Security metrics в SOC/SIEM.
+
+**Q3: Governance**
+- Формализация AI Security policy, aligned с NIST AI RMF.
+- Vendor security assessment для LLM-провайдеров.
+- Data governance для тренировочных данных (sanitization, differential privacy).
+- Human-in-the-loop для критичных AI-решений.
+- Подготовка к compliance audit (ISO 42001, EU AI Act).
+
+**Q4: Optimization**
+- Automated adversarial testing в CI/CD pipeline.
+- Continuous Red Teaming и regression testing.
+- AI Security metrics dashboard для руководства.
+- Bug Bounty program или VDP для AI-систем.
+- Knowledge sharing: публикации, конференции, open-source tools.
+
+---
+
+## Подготовка к собеседованию: Common pitfalls & key questions
+
+### Частые ошибки кандидатов
+
+1. **Путают ML Security и LLM Security**. Классические adversarial examples для компьютерного зрения — это не prompt injection. Нужно показать понимание различий.
+2. **Забывают про организационный слой**. Технические кандидаты фокусируются на guardrails, но игнорируют training, policy, compliance. Security Architect должен видеть всю пирамиду.
+3. **Считают, что guardrails решают всё**. «Мы поставили Moderation API — и всё защищено». Это ложное чувство безопасности. Нужен defense-in-depth.
+4. **Не знают разницу между OWASP и ATLAS**. Это два разных языка для разных аудиторий. Архитектор должен говорить на обоих.
+5. **Игнорируют supply chain**. Угрозы в зависимостях, бенчмарках, предобученных весах — критичны, но часто упускаются.
+
+### Ключевые вопросы на собеседовании (с ответами-индикаторами)
+
+**Вопрос 1**: «Как бы вы защитили банковский чат-бот на базе LLM от prompt injection?»
+- *Хороший ответ*: defense-in-depth — input filtering, system prompt hardening, output DLP, least-privilege API, human-in-the-loop для транзакций, continuous monitoring.
+- *Плохой ответ*: «Поставим фильтр на входе».
+
+**Вопрос 2**: «В чём разница между NIST AI RMF и ISO 42001?»
+- *Хороший ответ*: RMF — это фреймворк управления рисками (функции Govern/Map/Measure/Manage), ISO 42001 — система менеджмента с требованиями к процессам, аудиту, сертификации. RMF помогает понять что делать, ISO — как организовать процесс.
+
+**Вопрос 3**: «Как применить Zero Trust к AI-агенту с доступом к CRM и email?»
+- *Хороший ответ*: every request verified, least-privilege tools, no hardcoded credentials, sandboxed execution, audit every action, human approval for writes/deletes, continuous anomaly detection.
+
+**Вопрос 4**: «Ваш LLM-чатбот случайно выдал персональные данные клиента. Что делать?»
+- *Хороший ответ*: incident response playbook — isolate model, preserve logs, assess blast radius, notify DPO, GDPR breach notification within 72h, root cause analysis, retrain guardrails, regression test.
+
+**Вопрос 5**: «Как измерить эффективность AI Security программы?»
+- *Хороший ответ*: метрики MTTD/MTTR, detection rate adversarial prompts, % systems with documented risk assessment, training completion rate, cost of prevented incidents, compliance score.
+
+---
+
+## Чек-лист [10+10]
+
+### Чек-лист для Security Architect (10 пунктов)
+
+- [ ] **1. Inventory**: Я знаю все AI/LLM системы в организации, их владельцев, провайдеров моделей и уровни риска.
+- [ ] **2. Threat Model**: Для каждой критичной системы проведён threat modeling с учётом MITRE ATLAS.
+- [ ] **3. Input Protection**: Все пользовательские промпты проходят validation и sanitization до попадания в модель.
+- [ ] **4. Output Protection**: Все ответы модели проходят filtering на PII, toxicity, hallucinations перед доставкой пользователю.
+- [ ] **5. Guardrails**: Программируемые ограничения (Guardrails AI / NeMo) применяются ко всем production LLM.
+- [ ] **6. Least Privilege**: AI-агенты имеют минимальный набор инструментов и прав доступа; нет hardcoded credentials.
+- [ ] **7. Data Governance**: Тренировочные данные sanitized, без PII; RAG-индексы имеют access control; есть Data Retention policy.
+- [ ] **8. Supply Chain**: Все модели и зависимости имеют provenance (Model Cards, signing); vendor assessment проведён для LLM-провайдеров.
+- [ ] **9. Monitoring**: SOC/SIEM получает логи AI-систем; настроены alerts на anomalous behavior (drift, tool abuse, data access).
+- [ ] **10. Human Oversight**: Критичные операции (transactions, data modification, external communications) требуют human-in-the-loop.
+
+### Чек-лист для подготовки к собеседованию (10 пунктов)
+
+- [ ] **1. OWASP**: Могу объяснить каждый из 10 пунктов OWASP Top 10 for LLM 2025 и привести пример mitigations.
+- [ ] **2. ATLAS**: Знаю структуру MITRE ATLAS, могу сопоставить техники с уязвимостями OWASP.
+- [ ] **3. NIST AI RMF**: Понимаю 4 функции (Govern, Map, Measure, Manage) и могу применить к кейсу.
+- [ ] **4. Zero Trust**: Могу объяснить, как каждый из 5 принципов ZT применяется к AI/LLM.
+- [ ] **5. Defense-in-Depth**: Могу нарисовать 5+ слоёв защиты для LLM-приложения и объяснить компенсирующие контроли.
+- [ ] **6. Red Teaming**: Знаю методологию AI Red Teaming, могу назвать 3+ инструмента и 3+ техники.
+- [ ] **7. Инциденты**: Могу разобрать 3+ реальных инцидента (Samsung, Clearview, Bing) и вывести уроки.
+- [ ] **8. Метрики**: Могу назвать 5+ метрик AI Security и объяснить, как их измерять.
+- [ ] **9. Compliance**: Понимаю требования EU AI Act для high-risk AI и отличия от ISO 42001.
+- [ ] **10. Архитектура**: Могу предложить architecture review для AI-системы с RAG, агентами и внешними API — и защитить её.
+
+---
+
+## Ключевые выводы
+
+1. **AI Security — это не подмножество классической безопасности**. Это новая дисциплина, пересекающая ML, AppSec, Data Privacy, Compliance и OrgSec. Архитектор, игнорирующий любой из слоёв, оставляет брешь.
+
+2. **Нет серебряной пули**. Guardrails, moderation API, input filters — всё это важно, но не заменяет defense-in-depth. LLM — это по своей природе недетерминированный компонент, и безопасность строится на **компенсирующих контролях** вокруг него.
+
+3. **Фреймворки работают вместе**. OWASP Top 10 for LLM говорит разработчикам, что защищать. MITRE ATLAS говорит SOC, как атакуют. NIST AI RMF говорит CISO, как управлять рисками. ISO 42001 говорит compliance, как организовать процессы. EU AI Act говорит юристам, что обязательно. **Мастерство — в синтезе**.
+
+4. **AI-угрозы эволюционируют быстрее защиты**. Jailbreaks 2022 года выглядят наивными сегодня. Атаки 2025 года на мульти-агентные системы станут обыденностью к 2027. Непрерывный Red Teaming, regression testing и community intelligence — единственный способ держать шаг.
+
+5. **Человек остаётся ключевым контролем**. Human-in-the-loop, human oversight, human review — эти «медленные» элементы часто спасают быстрее, чем самые быстрые автоматизированные guardrails. AI Security — это не только технология, но и **культура внимательности**.
+
+6. **Метрики превращают faith-based security в evidence-based**. Если вы не можете измерить detection rate prompt injection, MTTD AI-инцидента или стоимость предотвращённой утечки — вы управляете на ощупь.
+
+7. **BYO-AI и Shadow AI — угрозы №1, которые игнорируют**. Технически совершенная защита production-системы бессмысленна, если сотрудник копирует конфиденциальные данные в ChatGPT. DLP + education + corporate AI gateway — must-have.
+
+8. **Supply chain AI уязвима так же, как software supply chain**. Модели, datasets, библиотеки, benchmarks — всё это может быть скомпрометировано до того, как вы начнёте защищать своё приложение. Model signing, provenance, vendor assessment — необходимы.
+
+9. **AI Red Teaming должно быть непрерывным, а не разовым**. Каждое обновление модели, каждый новый guardrail, каждый новый инструмент агента — потенциальная регрессия. Автоматизация adversarial testing в CI/CD — цель.
+
+10. **Этот overview — отправная точка, не конечная станция**. Реальная экспертиза формируется через практику: Red Teaming, инциденты, архитектурные решения, взаимодействие с разработчиками. Используйте этот чек-лист как карту, но помните: **город постоянно растёт и меняется**.
+
+### Ответы на чек-лист
+
+1. **AI Security — это не подмножество классической безопасности, а пересечение пяти дисциплин.** Классическая AppSec фокусируется на коде и инфраструктуре, но AI добавляет prompt injection, data poisoning, model extraction, adversarial robustness. LLM-системы недетерминированы: один prompt может дать разные ответы. Традиционные тесты (SAST, DAST) недостаточны — нужен continuous adversarial testing. NIST AI RMF и OWASP Top 10 for LLM признают этот unique threat landscape.
+
+2. **Пирамида безопасности ИИ: data, model, deployment, application, governance.** Data layer: data provenance, differential privacy, PII detection. Model layer: model signing, watermarking, access control. Deployment layer: sandboxing, rate limiting, API security. Application layer: input/output validation, guardrails, human-in-the-loop. Governance layer: Model Cards, AI RMF, EU AI Act compliance. Пропуск слоя — single point of failure.
+
+3. **AI Kill Chain (MITRE ATLAS): 7 стадий.** Reconnaissance → Resource Development → Initial Access → ML Model Access → Execution → Persistence → Impact. Всего ~30 техник, позволяющих SOC анализировать AI-инциденты структурированно.
+
+4. **OWASP говорит ЧТО защищать, ATLAS говорит КАК ломают.** OWASP LLM01 (Prompt Injection) → ATLAS Execution и Initial Access. OWASP LLM04 (DoS) → ATLAS Impact и Execution. OWASP LLM06 (Disclosure) → ATLAS Impact и Persistence. Security Architect должен map контроли OWASP на техники ATLAS.
+
+5. **Zero Trust для AI: verify every query, output, data source, assume compromise.** Input validation, output filtering, data source authentication, compensating controls (sandboxing, DLP, audit trails). AI Zero Trust добавляет верификацию на уровне данных, модели и поведения.
+
+6. **Red Teaming: automated adversarial testing + manual jailbreaks + multi-agent simulation + continuous regression.** Инструменты: Garak, PurpleLlama, NVIDIA Garak, ART. Метрики: jailbreak success rate, time-to-compromise, OWASP LLM coverage.
+
+7. **Ключевые инциденты:** Samsung (утечка через ChatGPT training data) → corporate AI gateway + DLP. Clearview AI (скрапинг без согласия, GDPR £17.2M) → data minimization + consent. Bing Chat Sydney (jailbreak через emotional manipulation) → defense-in-depth: input + output + behavioral monitoring + human oversight.
+
+8. **Ключевые метрики:** Detection Rate, False Positive Rate, MTTD, MTTR, Model Drift Score, Fairness Metrics (demographic parity, equalized odds), Explainability Coverage, Compliance Score. Без метрик AI Security — faith-based, не evidence-based.
+
+9. **EU AI Act (регуляция, штрафы до 35M€) vs ISO 42001 (voluntary standard).** EU AI Act: risk-based, 4 уровня риска, CE marking для high-risk. ISO 42001: management system (Govern, Map, Measure, Manage), не предписывает технических требований. Компании используют ISO 42001 как foundation для EU AI Act compliance.
+
+10. **Architecture review для AI с RAG + агенты + внешние API:** Defense-in-Depth на 5 слоях. Data: sandboxed retrieval, document sanitization, vector DB RBAC. Model: model signing, output filtering, rate limiting. Deployment: API gateway, AI DMZ, container hardening. Application: input/output validation, guardrails, human-in-the-loop, agent isolation. Governance: Model Cards, audit trails, drift/bias/anomaly monitoring. External API: zero-trust integration, schema validation, circuit breakers. RAG: permission-aware retrieval, semantic filtering. Угрозы: multi-hop prompt injection, tool poisoning, context window exhaustion.
+
+---
+
+*Статья №10 серии «AI/LLM Security». Ссылки: [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/), [MITRE ATLAS](https://atlas.mitre.org/), [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework), [ISO/IEC 42001:2023](https://www.iso.org/standard/81230.html), [EU AI Act](https://artificial-intelligence-act.com/).*
