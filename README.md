@@ -16,7 +16,7 @@
 | 08 | [PostgreSQL Security](08-postgresql-security/) | ✅ Завершён (10 статей) |
 | 09 | [OAuth/OIDC](09-oauth-oidc/) | ✅ Завершён (10 статей) |
 | 10 | [Docker Security](10-docker-security/) | ✅ Завершён (10 статей) |
-| 11 | [AI/LLM Security](11-ai-llm-security/) | ⏳ Запланировано |
+| 11 | [AI/LLM Security](11-ai-llm-security/) | ✅ Завершён (10 статей) |
 
 ## Как использовать
 
@@ -36,6 +36,7 @@
 - ✅ PostgreSQL Security: 10/10 статей
 - ✅ OAuth/OIDC: 10/10 статей
 - ✅ Docker Security: 10/10 статей
+- ✅ AI/LLM Security: 10/10 статей
 - 🟡 Методологии: 0/13 статей
 
 ## Целевая аудитория
