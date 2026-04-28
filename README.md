@@ -13,7 +13,7 @@
 | 05 | [Cloud Security](05-cloud-security/) | ✅ Завершён (10 статей) |
 | 06 | [Java Security](06-java-security/) | ✅ Завершён (10 статей) |
 | 07 | [Kafka Security](07-kafka-security/) | ✅ Завершён (10 статей) |
-| 08 | [PostgreSQL Security](08-postgresql-security/) | ⏳ Запланировано |
+| 08 | [PostgreSQL Security](08-postgresql-security/) | ✅ Завершён (10 статей) |
 | 09 | [OAuth/OIDC](09-oauth-oidc/) | ⏳ Запланировано |
 | 10 | [Docker Security](10-docker-security/) | ⏳ Запланировано |
 | 11 | [AI/LLM Security](11-ai-llm-security/) | ⏳ Запланировано |
@@ -33,6 +33,7 @@
 - ✅ Cloud Security: 10/10 статей
 - ✅ Java Security: 10/10 статей
 - ✅ Kafka Security: 10/10 статей
+- ✅ PostgreSQL Security: 10/10 статей
 - 🟡 Методологии: 0/13 статей
 
 ## Целевая аудитория
