@@ -11,7 +11,7 @@
 | 03 | [Методологии](03-methodologies/) | ✅ Завершён (14 статей) |
 | 04 | [Стандарты и фреймворки](04-standards/) | ✅ Завершён (10 статей) |
 | 05 | [Cloud Security](05-cloud-security/) | ✅ Завершён (10 статей) |
-| 06 | [Java Security](06-java-security/) | ⏳ Запланировано |
+| 06 | [Java Security](06-java-security/) | ✅ Завершён (10 статей) |
 | 07 | [Kafka Security](07-kafka-security/) | ⏳ Запланировано |
 | 08 | [PostgreSQL Security](08-postgresql-security/) | ⏳ Запланировано |
 | 09 | [OAuth/OIDC](09-oauth-oidc/) | ⏳ Запланировано |
@@ -31,6 +31,7 @@
 - ✅ Методологии: 14/14 статей
 - ✅ Стандарты и фреймворки: 10/10 статей
 - ✅ Cloud Security: 10/10 статей
+- ✅ Java Security: 10/10 статей
 - 🟡 Методологии: 0/13 статей
 
 ## Целевая аудитория
