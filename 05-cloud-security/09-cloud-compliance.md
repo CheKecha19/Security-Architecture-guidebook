@@ -1,166 +1,213 @@
-# Compliance в облаке
+# Compliance в облаке: Архитектура соответствия регуляторным требованиям, стандартам и аудитам в мультиоблачной среде
 
-## Что такое compliance в облаке?
+## Что такое облачный compliance?
 
-Представь, что ты открываешь ресторан. Для этого нужны разрешения: санитарное, пожарное, налоговое. Каждая инспекция проверяет свою область. Санитарка — холодильник. Пожарные — выходы. Налоговая — касса.
+Представьте, что вы строите небоскрёб в городе с многоуровневой системой строительных кодексов: национальный стандарт устойчивости к землетрясениям, региональный кодекс энергоэффективности, муниципальные требования к доступности для людей с ограниченными возможностями, федеральный закон о равноправии доступа к общественным зданиям, и страховые требования к системам пожарной безопасности. Каждый стандарт — своё ведомство, своя инспекция, свои метрики. Архитектор не может сказать: «По этой лестнице пожарный кодекс выполняется, а для людей с инвалидностью — слишком узкая.» Нет — лестница должна соответствовать всем кодексам одновременно. Более того, когда вы арендуете часть здания в уже построенном комплексе (облако), не все требования ложатся на собственника здания: защита фундамента — его зона, оборудование вашей квартиры — ваша.
 
-**Compliance в облаке** — это такие же "инспекции", но для облачной инфраструктуры. Не ресторан, а дата-центр. Не холодильник, а сервер. Не касса, а обработка данных.
+**Compliance в облаке** — это системное управление соответствием десяткам регуляторных требований, технических стандартов и внутренних политик в условиях, когда ответственность разделена между облачным провайдером и клиентом, инфраструктура виртуальная и изменчивая, а аудиторы требуют доказательств (evidence) непрерывно и в реальном времени. Compliance — не конечный продукт («сертификат на стене»), а процесс: классификация данных, сопоставление контролей со стандартами, непрерывный мониторинг соответствия, управление доказательствами и реагирование на несоответствия.
 
-Разница: в облаке ответственность делится. Часть — провайдера, часть — клиента. Compliance тоже делится.
+Фундаментальная проблема безопасности, которую решает compliance: без формального сопоставления между заявленными защитными мерами и реальным состоянием системы, организация работает в режиме «мы думаем, что защищены». Compliance-аудит превращает «думаем» в «доказуемо».
 
-## Зачем нужен compliance?
+## Эволюция и мотивация
 
-### Ситуация 1: Банк в облаке
+Два десятилетия назад compliance — это был ритуал: аудитор приезжал раз в год, проверял физическую безопасность дата-центра, листал логи в текстовых файлах на принтере, и через две недели выдавал report. Среда была статичной: серверы физические, конфигурации ручные, изменения — через change management с бумажными заявками. Compliance требовал много бумажной работы, но технологически был прямолинейным: спроси администратора — он знает, как настроено.
 
-Банк хранит данные в облаке. Регулятор требует: "Докажите безопасность". Банк показывает: у нас ISO 27001, у провайдера SOC 2, у облака PCI DSS.
+Облако разрушило эту модель в четырёх измерениях. Во-первых, динамизм: EC2-инстанс создаётся и уничтожается через Terraform за 5 минут, а аудитор пришёл на проверку логов за 90 дней. В статичной среде администратор знал, где серверы. В облаке — только CI/CD pipeline и состояние Terraform знают, что существует прямо сейчас. Во-вторых, масштаб: организация с сотней EC2 в 2010 году выросла до сотен тысяч ресурсов в десятках облачных аккаунтов — ручная проверка невозможна. В-третьих, разделение ответственности: аудитору нужно ответить, «кто контролирует firewall rules?» и получить ответ «это AWS зона» для части сервисов и «это наша зона» для другой. Без явного mapping'а контролей на субъекты — невозможно проверить compliance. В-четвёртых, multi-jurisdiction: одна организация работает под PCI DSS (США, кредитные карты), GDPR (Европа, ПДн), HIPAA (здравоохранение), SOC 2 (клиенты enterprise), ISO 27001 (корпоративный стандарт) и 152-ФЗ (Россия, ПДн) — каждый с собственным набором контролей и аудитов. Без комплексной compliance-платформы организация утонет в пересечении требований.
 
-### Ситуация 2: Утечка
+Технологический ответ: automation. AWS Config, Azure Policy, GCP Security Command Center — это не просто «средства проверки», а фундаментальная трансформация compliance с ручного к непрерывному и автоматизированному. NIST SP 800-53 CA-2 (Security Assessments), Rev. 5, теперь предписывает continuous monitoring и automated evidence collection вместо разовых annual audits.
 
-Данные утекли из облака. Кто виноват? Кто отвечает перед регулятором?
+## Зачем нужен облачный compliance?
 
-Compliance определяет: кто что должен был делать. Кто проверял. Кто отвечает.
+**Сценарий 1: Новый enterprise-контракт требует SOC 2 Type II.** Потенциальный enterprise-клиент запрашивает аудиторский отчёт SOC 2 Type II (Service Organization Control 2). Организация — SaaS-стартап, работающий на AWS. Без compliance-архитектуры: требуется 6 месяцев на ручной сбор evidence (логи, конфигурации, screenshots из консоли), внешний аудитор находит пробелы (отсутствие MFA на production root-аккаунтах, отсутствие backup testing), report откладывается на квартал, контракт теряется к конкуренту. С compliance-архитектурой: (a) AWS Config rules continuously проверяют каждый ресурс на соответствие, (b) AWS Audit Manager / Azure Compliance Manager автоматически собирают evidence по контролям SOC 2 (MFA presence, encryption at rest, access review frequency), (c) pre-filled evidence package предоставляется аудитору через artifact portal. Время подготовки: 2 недели вместо 6 месяцев.
 
-### Ситуация 3: Новый рынок
+**Сценарий 2: Регуляторный штраф за незащищённые ПДн.** Роскомнадзор проводит внеплановую проверку и обнаруживает, что облачные логи организации содержат персональные данные клиентов в plaintext. Организация не уведомила Роскомнадзор об обработке ПДн в облаке (152-ФЗ, п. 5 ст. 6), не назначила DPO, и логи доступны 50 разработчикам без MFA. Штраф: до 500,000 рублей за первое нарушение. С compliance-архитектурой: (a) Privacy Impact Assessment (PIA) проведена при проектировании системы, (b) облачные логи сканируются через Macie/Purview на ПДн-patterns, (c) классификация данных enforced — ПДн в логах маскируются Data Protection policy, (d) DPO назначен, уведомление в РКН отправлено при запуске сервиса.
 
-Компания хочет выйти в Европу. Нужен GDPR. В США — HIPAA или FedRAMP. Compliance — пропуск.
+**Сценарий 3: PCI DSS для обработки платежных данных.** Fintech-компания принимает платежи и хранит PAN-номера в облачной БД. PCI DSS требует: Req 3.4 — PAN нечитаем при хранении; Req 8.2 — MFA для remote access; Req 10.5 — защита логов от модификации; Req 11.3.2 — регулярное сканирование уязвимостей. Без compliance-framework: команда вручную проверяет каждое требование раз в квартал через Excel-таблицу, забывает обновить при изменении архитектуры, аудито PCI DSS QSA находит 20 gap'ов. С compliance-архитектурой: (a) automated evidence collection: AWS Config rule проверяет MFA на каждом root-аккаунте (daily), AWS Inspector сканирует инстансы на CVE (weekly), (b) PCI DSS compliance dashboard — зелёный/жёлтый/красный статус для каждого из 12 требований в реальном времени, (c) evidence repository: S3-бакет с CloudTrail logs (WORM, Object Lock), VPC Flow Logs, конфигурационными историями (AWS Config History), доступный аудитору через IAM-роль.
 
-## Модель shared responsibility в compliance
+**Сценарий 4: Cross-border data transfer (Schrems II, GDPR).** Европейская компания переносит данные в облако и обнаруживает, что провайдер хранит резервные копии в США. Schrems II (2020) делает Standard Contractual Clauses недостаточными без дополнительных мер (TIA — Transfer Impact Assessment). Без compliance: компания не провела TIA, регулятор отменяет передачу данных, облачная миграция останавливается, бизнес потерял 2 года и миллионы. С compliance: TIA проведена при проектировании, выбран облачный провайдер с data residency guarantees (EU-only regions, отключённая cross-region репликация), contractual agreement includes adequacy finding documentation, и компания может продемонстрировать регулятору, что меры equivalent protection in place.
 
-| Compliance | Облако | Клиент |
-|------------|--------|--------|
-| ISO 27001 | Сертификат инфраструктуры | Сертификат системы |
-| SOC 2 | Type II для облака | Type II для приложения |
-| PCI DSS | Уровень провайдера | Уровень клиента |
-| HIPAA | BAA (соглашение) | Compliance приложения |
-| GDPR | Процессоры vs контролёры | Ответственность контролёра |
+**Сценарий 5: Vendor due diligence и shared compliance.** Организация (финансовая) использует managed Kubernetes-сервис (EKS/AKS/GKE) и хранит customer data в облачной БД. Аудитор спрашивает: «Как вы докажете, что облачный провайдер соответствует требованиям, если вы не имеете доступа к его инфраструктуре?» Ответ: SRM (Shared Responsibility Model) + vendor compliance documentation. Провайдер предоставляет SOC 2 Type II report, ISO 27001 certificate, PCI DSS Attestation of Compliance (AoC) и CSA STAR Level 2. Компания хранит эти документы в compliance evidence repository, vendor risk management program includes quarterly review of vendor compliance status. Стандарт NIST SP 800-161 (Supply Chain Risk Management) требует vendor compliance verification.
 
-## Основные стандарты
+## Основные концепции
 
-### ISO 27001
+### Shared Responsibility в compliance: доказательная база
 
-| Что проверяет | Облако | Клиент |
-|---------------|--------|--------|
-| Физическая безопасность | ✅ | — |
-| Управление доступом | ✅ | ✅ |
-| Шифрование | ✅ | ✅ |
-| Управление инцидентами | ✅ | ✅ |
+Ключевой принцип облачного compliance: аудитору нужен evidence, и этот evidence должен быть собран либо у клиента (клиентская зона), либо у провайдера (зона провайдера), либо в форме совместного соглашения (BAA — Business Associate Agreement для HIPAA, DPA — Data Processing Addendum для GDPR).
 
-### SOC 2
+Архитектурно комплаенс-документ создаётся через matrix: каждый контроль стандарта (например, PCI DSS Req 8.2 — MFA for all remote access) декомпозируется на:
+- **Что предоставляет провайдер:** AWS IAM supports MFA for all IAM users, IAM Identity Center supports MFA for SSO. Evidence: официальная документация AWS IAM + SOC 2 report от провайдера.
+- **Что делает клиент:** клиент включает MFA на всех IAM-пользователях и root-аккаунтах, ротация credentials every 90 days. Evidence: AWS Config rule `iam-password-policy` + IAM credential report + CloudTrail event `EnableMFADevice`.
+- **Граница доказательства:** audit evidence для контроля включает провайдерскую документацию + клиентскую автоматизированную проверку + ручной подтверждающий документ (policy document).
 
-| Trust Service Criteria | Облако | Клиент |
-|------------------------|--------|--------|
-| Security | ✅ | ✅ |
-| Availability | ✅ | ✅ |
-| Confidentiality | ✅ | ✅ |
-| Processing Integrity | — | ✅ |
-| Privacy | — | ✅ |
+Технологически решение: Compliance Automation Platform (AWS Audit Manager, Azure Compliance Manager, GCP Compliance Reports Manager). Эти сервисы: (a) сопоставляют облачные ресурсы с требованиями стандарта, (b) автоматически собирают evidence (конфигурации, логи, скриншоты, проверки), (c) генерируют audit-ready отчёты (workbooks для аудиторов). NIST SP 800-53 CA-7 (Continuous Monitoring) требует непрерывного сбора evidence.
 
-### PCI DSS
+### Непрерывный мониторинг соответствия (Continuous Compliance Monitoring)
 
-| Требование | Облако | Клиент |
-|------------|--------|--------|
-| Firewall | ✅ | — |
-| Хранение данных | — | ✅ |
-| Шифрование передачи | ✅ | ✅ |
-| Управление доступом | ✅ | ✅ |
+Единственный способ достичь compliance в динамичном облаке — автоматизировать проверку и собирать evidence непрерывно, а не раз в квартал. Иначе «compliance drift» неизбежен: разработчик отключил шифрование для тестирования и забыл включить обратно — организация non-compliant уже две недели до следующего ручного чека.
 
-## Облачные compliance инструменты
+Архитектура непрерывного мониторинга:
+- **Policy as Code** — compliance-правила как код: Terraform Sentinel, AWS Config Rules, Azure Policy definitions, GCP Organization Policy Constraints. Каждый deployment проверяется на соответствие до применения.
+- **Real-time Evidence Collection** — CloudTrail + Config History + VPC Flow Logs + Security Hub findings непрерывно записываются в evidence repository (S3 с Object Lock + Cross-Region Replication).
+- **Compliance Dashboards** — единый dashboard: текущий статус каждого контроля SOC 2 / PCI DSS / ISO 27001: зелёный (evidence собрано, проверка пройдена), жёлтый (evidence устарело или частичное), красный (контроль провален).
+- **Automated Remediation** — AWS Config auto-remediation: если `s3-bucket-public-read-prohibited` rule fail → Lambda автоматически apply'ит `PutPublicAccessBlock` и логирует action.
 
-### AWS
+Три уровня автоматизации: Level 1 (пассивный) — собирает логи и evidence для manual review. Level 2 (активный) — alerts + dashboard, но remediation manual. Level 3 (автономный) — auto-remediation + auto-evidence-collection. SOC 2 Type II и PCI DSS поддерживают Level 3 для детерминированных контролей.
 
-| Сервис | Описание |
-|--------|----------|
-| Artifact | Доступ к отчётам compliance |
-| Config | Оценка конфигурации |
-| Security Hub | Агрегация findings |
-| Audit Manager | Автоматический сбор evidence |
+### Cross-Standard Mapping и Harmonization
 
-### Azure
+Крупные организации работают под несколькими стандартами одновременно, и каждый стандарт использует свой словарь: NIST SP 800-53 имеет families (AC, AU, CM, SC), PCI DSS имеет требования 1-12, ISO 27001 имеет Annex A контролы (A.8, A.9, A.12), GDPR имеет articles (32, 33, 34), SOC 2 имеет TSC (CC6.1, CC7.1). Без mapping'а compliance-команда дублирует работу.
 
-| Сервис | Описание |
-|--------|----------|
-| Compliance Manager | Оценка compliance |
-| Security Center | Рекомендации |
-| Policy | Enforcement |
-| Blueprints | Шаблоны compliance |
+Cross-standard mapping — соответствие между контролями. Пример:
+- NIST SP 800-53 AC-6 (Least Privilege) = PCI DSS Req 7.1 (Restrict Access to System Components) = ISO 27001 A.9.1.2 (Access to Networks) = SOC 2 CC6.1 (Logical Access Security) = CIS v8 Control 5.4 (Least Privilege). Один контроль (minimization of access rights) закрывает 5 стандартов одновременно.
+- NIST SP 800-53 SC-28 (Protection of Data at Rest) = PCI DSS Req 3.4 (Render PAN Unreadable) = ISO 27001 A.10.1.2 (Key Management) = SOC 2 CC6.7 (Encryption) = GDPR Art. 32 (a). Шифрование at rest — один контроль, five-fold compliance.
 
-### GCP
+Автоматизированные mapping tools: AWS Audit Manager (built-in mapping NIST/PCI/SOC 2/ISO), Azure Compliance Manager (mapping NIST/ISO/GDPR/PCI/HIPAA), compliance frameworks like HITRUST CSF (integrated mapping of NIST/HIPAA/ISO/PCI). Организация использует эти mappings для: (a) avoiding double work — один контроль закрывает multiple standards, (b) identifying gaps — если контроль присутствует в NIST, но не в PCI, и PCI его требует — gap, (c) efficient audit preparation — evidence собран один раз, используется для всех стандартов.
 
-| Сервис | Описание |
-|--------|----------|
-| Compliance Reports Manager | Отчёты |
-| Security Command Center | Нахождение проблем |
-| Assured Workloads | Compliance-ориентированные рабочие нагрузки |
+### Data Residency и Sovereignty
+
+Важный compliance-aspect: некоторые юрисдикции требуют, чтобы чувствительные данные не покидали территорию страны или региона. GDPR — cross-border transfer requirements (Schrems II). Россия — 152-ФЗ, требующий хранения ПДн на территории РФ. Китай — Cybersecurity Law (CSL), PIPL — strict data localization. Государственные контракты США — FedRAMP и StateRAMP — требуют data residency в США.
+
+Облачные механизмы data residency:
+- **Regional services:** выбор региона при создании ресурса (AWS eu-west-1 для Европы, Azure West Europe). Провайдер гарантирует, что data at rest не реплицируется вне региона (если настроено).
+- **Resource Policy Constraints:** GCP Organization Policy `gcp.resourceLocations` ограничивает, в каких регионах можно создавать ресурсы. Azure Policy `Allowed Locations` — аналогично.
+- **Encryption with customer-managed keys:** ключи шифрования хранятся в KMS того же региона, зашифрованные данные не могут быть расшифрованы без доступа к этому KMS.
+- **Cross-border transfer controls:** AWS Snowball Edge (физический девайс) для предварительного шифрования и передачи данных в region с физическим транспортом, bypassing internet. AWS Outposts — облачное оборудование in-premises, полностью контролируемое клиентом, но managed AWS.
+
+## Сравнение compliance-стандартов и их архитектурных требований
+
+| Стандарт | Основная цель | Архитектурные требования | Доказательный инструментарий | Масштаб аудита |
+|----------|---------------|--------------------------|------------------------------|----------------|
+| **PCI DSS** (Payment Card Industry Data Security Standard) | Защита данных карт при обработке, хранении, передаче | Cardholder Data Environment (CDE) — сетевая изоляция сегмента, шифрование PAN (Req 3.4), firewalls (Req 1), MFA для удалённого доступа (Req 8.2), vulnerability scanning (Req 11.3), Web Application Firewall (Req 6.6) | AWS Config rules per PCI DSS control, VPC Flow Logs, WAF logs, quarterly ASV scan reports, IAM credential reports | Ежегодный QSA аудит + quarterly vulnerability scans |
+| **SOC 2** (System and Organization Controls 2) | Доверие клиентов к организации: безопасность, доступность, конфиденциальность, целостность обработки, privacy | Технические контроли (CC6.1 — logical access security, CC6.7 — encryption), но focus на процесс: change management, incident response, vendor management, backup testing, policy documentation | AWS Audit Manager evidence collection (встроенные templates per SOC 2 TSC), manual evidence (policies, procedures), continuous monitoring dashboards | Type I (point-in-time) и Type II (over 6-12 months period with evidence timeline) |
+| **ISO 27001** | Международный стандарт управления ИБ-системой | Risk assessment and treatment (Annex A контролей: A.8 Asset Management, A.9 Access Control, A.12 Operations Security, A.13 Communications Security), ISMS — management system | Risk register, asset inventory, access control matrices, audit logs, penetration test reports, policy documents | Ежегодный surveillance аудит + recertification (3 года) |
+| **GDPR** (General Data Protection Regulation) | Защита персональных данных в ЕС | Privacy by design, data minimization, purpose limitation, storage limitation, accuracy, confidentiality, integrity, availability (Art. 32 — technical measures), breach notification (72h) | Data Protection Impact Assessment (DPIA), records of processing activities, consent records, data flow diagrams, pseudonymization evidence, encryption at rest/in transit | Supervisory authority — trigger-based (complaint-driven), можно proactive notification |
+| **FedRAMP** (Federal Risk and Authorization Management Program) | Доступ к федеральным контрактам США | High baseline: 325+ controls из NIST SP 800-53 (High impact system), continuous monitoring (CA-7), incident reporting, FIPS 140-2 Level 2+, US-only data residency | Continuous monitoring dashboard (FedRAMP-authorized tools: Splunk, Elastic, etc.), System Security Plan (SSP), POA&M (Plan of Action and Milestones) | Initial 3PAO (Third Party Assessment Organization) audit, annual continuous monitoring review |
+
+Архитектурный компромисс: PCI DSS требует сетевой сегментации и WAF — архитектурно restrictive, но чёткий. SOC 2 — гибкий, но процессно-нагруженный (требует документированных политик на каждый TSC). ISO 27001 — системный, но generic (Annex A — общие контроли, конкретная реализация зависит от риск-оценки организации). GDPR — наиболее data-centric, но юридически нагруженный (consent management, breach notification, DPO). FedRAMP — наиболее технически детализированный и expensive (325 controls + continuous monitoring).
+
+Многие организации строят compliance architecture в формате «lowest common denominator + specific additions»: ISO 27001 Annex A как базовый framework + PCI DSS specific controls для CDE + GDPR specific controls для EU data subjects + FedRAMP specific controls для government contracts. Такой подход минимизирует дублирование.
+
+## Уроки из реальных инцидентов
+
+### Инцидент Capital One (2019): Compliance vs reality gap
+
+Хронология: в 2019 году Capital One — крупнейший банк США с PCI DSS compliance и регуляторной supervision — стал жертвой утечки данных 106 миллионов клиентов через SSRF-атаку в AWS. Как известный в PCI DSS-аудитах банк мог допустить критическую уязвимость?
+
+Compliance-анализ: Capital One имел SOC 2 Type II, PCI DSS Attestation, и регуляторный capital adequacy. Но (a) IAM-роль инстанса (EC2 instance role) имела избыточные права (`s3:ListBucket` для всех бакетов) — нарушение AC-6 (Least Privilege), (b) Web Application Firewall был настроен с SSRF-уязвимостью — нарушение PCI DSS Req 6.6 (Web Application Firewall), (c) не было автоматического отключения устаревших инстансов — 2017 инстанс с известной misconfiguration жил до 2019.
+
+Урок: compliance-сертификат не гарантирует отсутствие уязвимостей. Compliance — формальная проверка на момент аудита, security — непрерывный процесс. Критически важен «compliance drift» — разрыв между заявленным состоянием и фактическим через недели/месяцы после аудита. Автоматизированный непрерывный мониторинг (CSPM + Config rules + Audit Manager) предотвращает этот drift.
+
+### Типичный сценарий инцидента: Отсутствие Data Processing Agreement
+
+Хронология: Европейский стартап (SaaS) хранит данные клиентов в AWS S3. GDPR compliance: компания имеет privacy policy на сайте, заявляет «GDPR compliant», и проходит ежегодный GDPR readiness review внутренним аудитором. Но: (a) нет Data Processing Agreement (DPA) с AWS — контракт не включает Standard Contractual Clauses (SCC) с Article 28 GDPR clauses, (b) облачные логи содержат незамаскированные email-адреса (PII), (c) резервные копии не удаляются после запроса на удаление (Right to Erasure, GDPR Art. 17). Регулятор (ICO, DPA) получает жалобу от клиента, проверяет — находит 3 нарушения GDPR. Штраф: £20,000 или до 4% оборота.
+
+Compliance-архитектура, которой не было: (a) vendor compliance review program: проверка наличия DPA/SCC с каждым cloud provider + документированное подтверждение adequacy для каждого cross-border transfer, (b) automated DLP-scanning логов на PII + masking через CloudWatch Data Protection, (c) automated data retention/lifecycle policy для S3-бакетов: delete all objects older than retention period (7 years), including backups, (d) Right to Erasure workflow: API endpoint для удаления данных субъекта, который охватывает все copies (S3, DynamoDB, RDS, CloudWatch Logs, Elasticsearch).
+
+Урок: compliance требует не только технических контролей, но и legal/procedural — DPA, SCC, adequacy finding, retention policy. Vendor compliance program и data lifecycle management — не опциональны, а mandatory для GDPR.
+
+## Инструменты и средства облачного compliance
+
+| Класс инструмента | Назначение | Позиция в жизненном цикле | Связь со стандартами |
+|-------------------|------------|---------------------------|----------------------|
+| Compliance Automation & Audit Manager (AWS Audit Manager, Azure Compliance Manager, GCP Compliance Reports Manager) | Непрерывный сбор evidence, mapping контролей на стандарты, генерация audit-ready отчётов (workbooks) | Continuous monitoring + pre-audit preparation | NIST 800-53 CA-7, SOC 2 TSC CC4 (Monitoring), ISO 27001 A.18.2 (Compliance Review) |
+| Policy as Code & Config Engine (AWS Config, Azure Policy, GCP Organization Policy, Terraform Sentinel/OPA) | Автоматическая проверка конфигураций на соответствие compliance-политикам: encryption, MFA, public access, backup, logging | Pre-deployment (CI/CD gate) + continuous runtime monitoring | NIST 800-53 CM-2 (Baseline Configurations), CIS v8 Control 4 (Secure Configurations) |
+| Cloud Security Posture Management (CSPM) + Compliance Dashboard (Prisma Cloud, Wiz, Orca, AWS Security Hub) | Обнаружение drift от compliance baseline: misconfigurations, отсутствие контролей, расхождения с desired state | Continuous scan (daily/hourly) | NIST 800-53 CA-7, PCI DSS Req 11.3 (Vulnerability Scanning), CIS v8 Control 4 |
+| Vendor Risk Management (VRM) Platform (Vanta, Drata, UpGuard, BitSight) | Автоматическая vendor compliance validation: мониторинг vendor compliance status, evidence collection, risk scoring, DPA/SCC tracking | Continuous: quarterly vendor review cycle | NIST 800-161 (Supply Chain Risk Management), ISO 27001 A.15.1 (Supplier Relationships) |
+| Evidence Repository (WORM Storage: S3 Object Lock, Azure Immutable Blob Storage, GCP Object Versioning) | Неизменяемое хранилище audit evidence: логи, скриншоты, отчёты, конфигурационные snapshots с timestamp и integrity hash | Continuous collection + long-term retention (1-7 years) | NIST 800-53 AU-9 (Protection of Audit Information), PCI DSS Req 10.5 |
+| Privacy Management Platform (OneTrust, TrustArc, BigID, DataGrail) | Управление privacy-специфичными compliance: consent management, data mapping, DPIA workflow, cookie compliance, breach notification automation, data subject rights (DSR) fulfillment | Foundation (DPIA before processing) + continuous (consent tracking, DSR fulfillment) | GDPR Art. 30, 32, 35 (DPIA), 33 (Breach Notification), Art. 17 (Right to Erasure) |
+
+Compliance Automation Platform (Audit Manager / Compliance Manager) — центральный элемент современного compliance. Он не заменяет аудитора, но радикально сокращает время подготовки и повышает качество evidence. Key features:
+- **Pre-built frameworks:** SOC 2, PCI DSS, ISO 27001, HIPAA, GDPR, FedRAMP — mapping готов из коробки.
+- **Automated evidence collection:** интеграция с облачными сервисами (Config, CloudTrail, Security Hub, IAM reports) для automatic generation of evidence packages.
+- **Manual evidence placeholder:** для контролей, требующих ручных документов (policy document, incident response test result, signed acknowledgment) — upload и version control.
+- **Timeline view:** каждый контроль имеет историю состояния (green/yellow/red) за период — критично для SOC 2 Type II, где аудитор требует 12-month timeline.
+- **Audit report generation:** pre-filled workbook, который предоставляется аудитору, с cross-references к evidence.
+
+Privacy Management Platform — emerging tool class для GDPR/CCPA-driven compliance. OneTrust (лидер рынка) интегрирует: data mapping (автоматическое сканирование облачных хранилищ на ПДн с inventory), DPIA workflow (questionnaire → risk scoring → mitigation → approval), consent management (cookie banner, consent records per user), DSR automation (request на удаление → automated workflow → deletion confirmation across all systems).
 
 ## Архитектурные решения
 
-### Compliance-ready architecture
+Построение compliance-архитектуры требует systematization на трёх уровнях: policy (что требуется), automation (как собирать evidence), и governance (кто отвечает).
 
-| Компонент | Решение |
-|-----------|---------|
-| Шифрование | KMS, всегда |
-| Логи | Неизменяемые, централизованные |
-| Доступ | MFA, RBAC, аудит |
-| Сеть | VPC, изоляция |
-| Backup | Регулярный, тестируемый |
-| Мониторинг | SIEM, anomaly detection |
+**Архитектурные принципы:**
+- **Compliance as Code:** все compliance-политики (encryption mandatory, MFA required, public access prohibited, logging enabled) — код в Git. Terraform + Sentinel/OPA + Config Rules + Azure Policy. Policy deployment через CI/CD с approval workflow.
+- **Continuous Evidence Collection:** для каждого контроля — automated evidence source: (a) Config Rule (encryption status), (b) IAM Credential Report (MFA enabled), (c) CloudTrail Event (who enabled MFA when), (d) Screenshot of console (manual evidence for policy documentation). Evidence стримится в immutable repository.
+- **Multi-Standard Evidence Sharing:** один автоматизированный check закрывает multiple standards. Example: check `s3-bucket-encryption` provides evidence for NIST SC-28, PCI DSS 3.4, ISO 27001 A.10.1.2, SOC 2 CC6.7, GDPR Art. 32 — five standards, one automated check.
+- **Vendor Compliance Repository:** centralized storage vendor compliance documentation (SOC 2 reports, ISO certificates, DPAs, SCCs) с expiration alerts. Если vendor certificate истекает за 60 дней — automated alert + vendor outreach.
+- **Privacy-by-Design Integration:** Privacy Impact Assessment (PIA) встроен в SDLC: перед началом нового проекта, обрабатывающего ПДн, required PIA approval. CI/CD pipeline проверяет: если проект обрабатывает ПДн (detected via data flow diagram with `contains_pii` flag), deployment не проходит без approved PIA.
 
-### Evidence collection
+**Метрики эффективности:**
+- Control Coverage: доля стандартных контролей с automated evidence collection (цель: 80%+ для deterministic controls)
+- Compliance Drift: количество контролей, перешедших из green в yellow/red за период (цель: 0 для critical controls)
+- Audit Preparation Time: время от запроса аудитора до delivery evidence package (цель: менее 1 недели)
+- Vendor Compliance Score: процент критичных vendors с valid, non-expired compliance certificates (цель: 100%)
+- DSR Fulfillment Time: среднее время от получения запроса на удаление данных до confirmation (GDPR Art. 17, цель: менее 30 дней)
 
-| Что собирать | Как |
-|--------------|-----|
-| Конфигурация | AWS Config, Azure Policy |
-| Логи | CloudTrail, Activity Log |
-| Изменения | Change management |
-| Доступ | IAM audit |
-| Уязвимости | Сканирование |
+**Красные флаги деградации:** отсутствие vendor DPA/SCC для cloud provider, используемого для EU data; expired compliance certificate у critical vendor (more than 30 days past expiration); compliance drift > 10% of controls in red for more than 7 days; manual evidence > 50% of total (недостаток автоматизации).
 
-## Лучшие практики
+**Сценарий миграции с ручного compliance к automated:** этап 1 — inventory всех контролей, применяемых в организации (кросс-стандарт mapping). Этап 2 — развёртывание Policy as Code (50% наиболее критичных контролей: encryption, MFA, public access). Этап 3 — настройка Compliance Automation Platform (Audit Manager/Compliance Manager) с pre-built framework. Этап 4 — vendor compliance digitization: загрузка всех существующих vendor certificates, настройка expiration alerts. Этап 5 — continuous monitoring maturity: от passive evidence collection к auto-remediation (Level 3 automation).
 
-| Практика | Описание |
-|----------|----------|
-| Знать зоны | Что облако, что клиент |
-| Использовать сертифицированное облако | SOC 2, ISO 27001 |
-| Документировать | Policies, procedures |
-| Автоматизировать | Config, Policy as Code |
-| Аудит | Регулярно |
-| Обучать | Команда знает требования |
+## Подготовка к собеседованию: Common pitfalls & key questions
+
+**Типичная ошибка 1: «SOC 2 Type II облачного провайдера покрывает нашу compliance».**
+Нет. SOC 2 Type II провайдера покрывает zone ответственности провайдера. Вся клиентская зона (конфигурация, данные, IAM, шифрование приложения, управление доступом) — вне scope провайдера. Компания должна иметь собственный SOC 2 Type II для своей части. Кандидат должен различать «compliance облака» и «compliance организации».
+
+**Типичная ошибка 2: «Compliance — это annual audit. Мы проходим его и забываем».**
+Сертификационный аудит — point-in-time snapshot. В облаке конфигурация меняется ежедневно. Compliance drift — неизбежен без continuous monitoring. SOC 2 Type II требует evidence за 12-месячный период — организация должна доказать, что контроли работали continuous, а не в день аудита.
+
+**Типичная ошибка 3: «GDPR compliance = privacy policy на сайте».**
+Privacy policy — один из 20+ требований GDPR. Реальные требования: lawful basis (consent, contract, legitimate interest), data minimization, storage limitation, accuracy, confidentiality, breach notification (72h), DPO, DPIA, data subject rights (access, rectification, erasure, portability), cross-border transfer adequacy. Privacy policy без соответствующих технических и процессных мер — facade compliance.
+
+**Сложный вопрос 1: «Компания хранит EU-customer data в AWS us-east-1 (США). После Schrems II и invalidation Privacy Shield — как обеспечить lawful cross-border transfer? Опишите архитектуру».**
+Проверяется: понимание Schrems II и TIA. Ответ: (a) первый уровень: Standard Contractual Clauses (SCC) — mandatory, но недостаточен без TIA (Transfer Impact Assessment), (b) TIA анализирует: законы третьей страны (США CLOUD Act, FISA 702), которые могут позволить массовый доступ к данным правительству, (c) supplementary measures: end-to-end encryption with client-side encryption (data encrypted before leaving EU, US provider sees only ciphertext), data pseudonymization (PII separated from data through tokenization), regional processing (sensitive data processed in EU-only, only non-sensitive aggregated data transferred to US), (d) technical measures: encryption at rest and in transit with EU-managed keys (no US government access without key), access logging to detect government access requests. Если supplementary measures недостаточны — organization must avoid cross-border transfer: EU-only region (eu-west-1) + EU-only data processing. Архитектурный компромисс: US processing может быть cheaper and faster, but legally risky post-Schrems II. NIST SP 800-53 does not address GDPR directly, but AC-4 (Information Flow Enforcement) requires control over data flows, which maps to GDPR Art. 44-49.
+
+**Сложный вопрос 2: «Как вы докажете PCI DSS compliance аудитору для облачной среды, где используются managed services (AWS RDS, Lambda, S3)? Что вы покажете, а что — AWS?»**
+Проверяется: mapping PCI DSS в облаке. Ответ: PCI DSS имеет clear distinction между: (a) Merchant/Service Provider (клиент) и (b) Cloud Provider (AWS). AWS предоставляет PCI DSS Attestation of Compliance (AoC) как service provider — аудитору нужен этот документ. Клиентская часть: (a) Network Segmentation — VPC design доказывает изоляцию CDE (Cardholder Data Environment) от остальных систем, (b) Access Control — IAM policies, MFA evidence, access review logs, (c) Encryption — KMS key management evidence (key rotation, access logging), (d) Logging — CloudTrail Organization Trail с Object Lock (WORM), VPC Flow Logs, (e) Vulnerability Management — AWS Inspector scan results, (f) Web Application Firewall — AWS WAF rules, (g) Incident Response — documented IR plan, tabletop exercise results. Критичный момент: shared responsibilities matrix — документ, где каждое PCI DSS требование декомпозировано между клиентом и AWS. Этот документ подписан обеими сторонами и предоставляется аудитору. NIST SP 800-53 CA-2 requires documented shared responsibility for cloud environments.
+
+**Сложный вопрос 3: «Как организовать compliance-мониторинг в multi-cloud (AWS + Azure + GCP) с единым dashboard и единым набором политик?»**
+Проверяется: multi-cloud compliance architecture. Ответ: (a) Unified Policy Engine — OPA (Open Policy Agent) с единым набором Rego-политик (encrypt all storage, enforce MFA, deny public access, require logging), deployed через Terraform на все три облака — AWS Config Rules, Azure Policy, GCP Organization Policy Constraints generated from single source of truth, (b) Unified Evidence Repository — all evidence collected into single S3/Azure Blob/GCS bucket (cross-cloud replication) with unified schema (OCSF — Open Cybersecurity Schema Framework), (c) Unified Compliance Dashboard — Grafana/Kibana/Tableau dashboard pulling evidence from all three clouds, showing green/yellow/red per standard, (d) Compliance Automation Platform that supports multi-cloud: Vanta, Drata, Hyperproof — pre-built integrations with AWS/Azure/GCP. Компромисс: единый policy engine требует abstraction layer, который может не покрывать cloud-specific controls (например, AWS-specific S3 Block Public Access vs Azure-specific Storage Account Public Access). Решение: 80% общих политик — unified, 20% cloud-specific — per-cloud supplements. CIS v8 Control 4 (Secure Configurations) and NIST SP 800-53 CM-2 require consistent policies across all environments.
 
 ## Чек-лист понимания
 
-- [ ] Что такое compliance?
-- [ ] Как shared responsibility влияет?
-- [ ] Какие стандарты?
-- [ ] Что такое BAA?
-- [ ] Какие инструменты AWS?
-- [ ] Что такое Artifact?
-- [ ] Как собирать evidence?
-- [ ] Что такое Assured Workloads?
-- [ ] Какие лучшие практики?
-- [ ] Почему compliance важен?
+- [ ] Почему compliance-сертификат облачного провайдера (SOC 2, ISO 27001) не освобождает клиента от необходимости получить собственный сертификат?
+- [ ] В каком случае automated evidence collection для compliance-контроля даёт false confidence, и какой дополнительный слой проверки необходим?
+- [ ] Как Schrems II изменил подход к cross-border data transfer между EU и США, и какие supplementary measures являются технически достаточными?
+- [ ] Почему continuous compliance monitoring обязателен в облаке, хотя в on-premise могло быть достаточно annual audit?
+- [ ] В каком случае vendor DPA (Data Processing Agreement) критичнее, чем vendor SOC 2 Type II, для GDPR compliance?
+- [ ] Как PCI DSS Requirement 11 (Vulnerability Management) взаимодействует с облачными managed services, где провайдер управляет частью инфраструктуры?
+- [ ] Почему Policy as Code для compliance не заменяет security-архитектурную экспертизу, а только операционализирует её?
+- [ ] В каком случае compliance automation platform (Audit Manager) генерирует incomplete evidence, требующее human supplement?
+- [ ] Как data residency policy для cloud-native организации отличается от policy для гибридного облака (on-prem + cloud)?
+- [ ] Почему Privacy Impact Assessment (DPIA) должен проводиться до проектирования системы, а не после запуска в production?
 
 ### Ответы на чек-лист
 
-1. **Compliance** — соответствие требованиям стандартов, законов, регуляций.
+1. **Ответ:** SOC 2 Type II провайдера покрывает только его зону ответственности: физическая безопасность дата-центра, гипервизор, managed services infrastructure. Вся клиентская часть: конфигурация IAM, шифрование данных приложения, управление доступом пользователей, обработка и хранение данных, compliance приложения — не входит в scope провайдера. Без собственного SOC 2 Type II клиент не может доказать аудитору, что он защищает данные и процессы в своей зоне. Аудитор проверяет оба scope — провайдерский и клиентский. NIST SP 800-53 CA-2 (Security Assessments) требует оценки всех контролей, включая делегированные.
 
-2. **Shared responsibility**: облако отвечает за инфраструктуру, клиент — за данные и приложения.
+2. **Ответ:** Automated evidence collection собирает конфигурационные данные: «MFA enabled on root account» = CloudTrail event `EnableMFADevice`. Но не доказывает: (a) что MFA действительно используется (корневой аккаунт может иметь MFA-устройство, но никогда не использовать его — фактический анализ CloudTrail показывает `MFAUsed: false`), (b) что все users покрыты (exception: устаревший IAM-пользователь без MFA, который не используется, но technically enabled), (c) что процесс review access rights выполняется quarterly (evidence — meeting minutes, email thread, sign-off). Поэтому automated evidence + manual evidence supplements + spot-check sampling — полный набор. NIST SP 800-53 CA-2 requires both automated and manual assessment methods.
 
-3. **Стандарты**: ISO 27001, SOC 2, PCI DSS, HIPAA, GDPR, FedRAMP.
+3. **Ответ:** Schrems II (2020) invalidated EU-US Privacy Shield. Standard Contractual Clauses (SCC) остались valid, но require Transfer Impact Assessment (TIA) + supplementary measures if third-country laws permit mass surveillance. Supplementary measures: (a) end-to-end encryption with EU-managed keys (client-side encryption before data leaves EU; US provider holds ciphertext only; decryption key in EU KMS), (b) pseudonymization/tokenization (PII replaced with tokens before transfer; token vault in EU), (c) regional processing architecture (EU region processes raw data, US receives only aggregated non-personal analytics). If supplementary measures are insufficient (e.g., US government can compel provider to decrypt) — transfer must not happen; EU-only processing mandatory. CJEU decision in Schrems II requires "essentially equivalent" protection level. NIST SP 800-53 doesn't directly address Schrems II, but AC-4 requires assessment of information flows across organizational boundaries, which maps to cross-border transfer analysis.
 
-4. **BAA** — Business Associate Agreement. Соглашение для HIPAA. Облако становится business associate.
+4. **Ответ:** On-premise: конфигурация статична (серверы физически не меняются без change request), firewall rules меняются раз в квартал через CAB, и annual audit достаточен для проверки stable state. Облако: (a) resources создаются/уничтожаются ежедневно через IaC, (b) новые сервисы провайдера добавляются автоматически (и могут иметь новые compliance implications), (c) development teams обходят change management через CI/CD (infrastructure changes as code), (d) compliance drift — inevitable: разработчик отключил шифрование для тестирования, забыл включить. NIST SP 800-53 CA-7 (Continuous Monitoring) explicitly requires real-time or near-real-time monitoring for cloud environments. SOC 2 Type II requires 12-month evidence timeline — impossible without continuous collection.
 
-5. **AWS**: Artifact (отчёты), Config (конфигурация), Security Hub (агрегация), Audit Manager (evidence).
+5. **Ответ:** SOC 2 Type II показывает, что vendor имеет controls, но не определяет отношения по обработке персональных данных. DPA — legal contract, определяющий: (a) who is data controller and who is processor, (b) what processing activities are permitted, (c) subprocessor governance (can vendor use subcontractors?), (d) security measures processor must implement, (e) breach notification timelines, (f) data subject rights support (how vendor helps respond to access/erasure requests), (g) data location and cross-border transfer terms, (h) audit rights (can controller audit processor?). Без DPA GDPR Article 28 не выполнен — обработка незаконна, независимо от SOC 2. DPA — mandatory legal requirement, SOC 2 — voluntary attestation.
 
-6. **Artifact** — портал AWS с compliance-отчётами (SOC, PCI, ISO).
+6. **Ответ:** PCI DSS Req 11 требует: (a) quarterly ASV vulnerability scans для external-facing systems, (b) annual penetration testing, (c) internal vulnerability scanning. В managed services (AWS RDS, Lambda, S3) провайдер отвечает за патчинг infrastructure (OS, hypervisor, managed database patches). Клиент отвечает за: (a) application-level vulnerabilities (OWASP Top 10) — через SAST/DAST, (b) network vulnerabilities (открытые порты в VPC) — через Inspector/Qualys/SSM, (c) container image vulnerabilities — через ECR/ACR scanning. Shared responsibility: провайдер предоставляет compliance evidence (SOC 2, PCI AoC) за infrastructure; клиент — за application and configuration. Для penetration testing in cloud: клиент согласовывает scope с провайдером (AWS penetration testing authorization), чтобы тестирование не вызвало abuse alert.
 
-7. **Evidence**: конфигурация, логи, изменения, доступ, уязвимости.
+7. **Ответ:** Policy as Code операционализирует решение, но не принимает его. Example: «Шифруйте все S3-бакеты» — это архитектурное решение. Policy as Code генерирует AWS Config Rule `s3-bucket-server-side-encryption-enabled`. Если архитектурное решение неверно (например, client-side encryption для некоторых данных preferable, но rule требует server-side), Policy as Code реализует неверное решение эффективно. Policy as Code — execution layer, не strategy layer. Нужен: architecture review (who decides what to enforce) + Policy as Code (how to enforce it) + exception process (when not to enforce). OWASP ASVS and NIST 800-53 require security architecture as foundational activity, separate from implementation.
 
-8. **Assured Workloads** — Google Cloud. Compliance-ориентированные рабочие нагрузки с контролями.
+8. **Ответ:** Audit Manager собирает evidence из облачных API (Config, CloudTrail, IAM reports). Но некоторые контроли требуют документов, не доступных через API: (a) incident response test results — tabletop exercise notes, (b) signed acknowledgment of security policy by all employees, (c) third-party risk assessment report for critical vendor, (d) physical security audit of office location. Эти документы — manual evidence, upload'ируемые в Audit Manager. Также automated evidence может быть incomplete: CloudTrail shows `EnableMFADevice`, но не показывает, что device physically held by user (it could be virtual MFA without enforcement of physical possession). NIST 800-53 CA-2 requires both automated and manual evidence, and auditor may request physical inspection or interviews.
 
-9. **Лучшие практики**: знать зоны, сертифицированное облако, документировать, автоматизировать, аудит, обучать.
+9. **Ответ:** Cloud-native: организация не имеет on-premise данных. Data residency policy определяет только облачные регионы (AWS eu-west-1 для EU data, Azure West Europe, GCP europe-west1). Все data at rest и in transit constrained to selected regions. Гибридное облако: часть данных on-premise (legacy systems, sensitive government data), часть в облаке. Data residency policy должна определять: (a) which data classes stay on-premise (e.g., classified data, core banking), (b) which data classes may migrate to cloud with regional constraints, (c) synchronization policy — if data replicated between on-premise and cloud, which direction, with what encryption, (d) cloud egress policy — can cloud data be downloaded to on-premise? Hybrid = additional complexity: synchronization latency, encryption key management across boundaries, and split compliance scope (on-premise controls + cloud controls). NIST SP 800-53 SC-7 (Boundary Protection) requires clear demarcation between on-premise and cloud perimeters.
 
-10. **Compliance важен**: пропуск на рынки, доверие клиентов, защита от штрафов.
+10. **Ответ:** DPIA (Data Protection Impact Assessment, GDPR Art. 35) — анализ рисков обработки ПДн до начала проекта. Если DPIA проведена после launch: (a) высокорискованная обработка уже запущена, и риски уже материализовались, (b) архитектурные решения уже сделаны и дорого менять (например, выбран облачный регион без data residency, и data уже там), (c) невозможно получить valid consent (если оно требуется), потому что пользователи уже обрабатываются. Privacy by Design (GDPR Recital 78) требует: DPIA проводится на этапе проектирования, и её результаты влияют на архитектуру системы до coding. CI/CD pipeline может enforce: если проект обрабатывает ПДн (detected by PIA flag in project metadata), deployment blocked until approved DPIA attached. NIST SP 800-53 RA-3 (Risk Assessment) requires risk assessment before system development.
+
+## Ключевые выводы для собеседования
+
+- **Самый критичный принцип:** Compliance — не сертификат, а continuous process. В облаке «compliant на момент аудита» безcontinuous monitoring означает «non-compliant через неделю после аудита» из-за compliance drift. Automation — единственный способ масштабирования compliance на тысячи облачных ресурсов.
+- **Главный компромисс:** Чем больше стандартов покрывает организация (PCI + SOC 2 + ISO + GDPR + FedRAMP), тем выше operational overhead и стоимость compliance. Smart approach: cross-standard mapping для максимизации reuse одного контроля на множество стандартов + automated evidence collection для reduction manual effort.
+- **Связь с ключевым стандартом:** NIST SP 800-53 CA-2 (Security Assessments), CA-7 (Continuous Monitoring), и RA-3 (Risk Assessment) — три опорных контроля, формирующих фундамент облачного compliance. Без automated continuous monitoring — compliance невозможно в масштабе облака.
+- **Практический императив:** Если аудитор запрашивает evidence за последние 90 дней, и его подготовка занимает более одного дня — у вас нет compliance automation. Target: однокнопочный evidence export для любого контроля за любой период.
 
 ---
-
-_Статья создана на основе анализа материалов Habr по compliance в облаке_
+_Статья создана на основе анализа NIST SP 800-53 Rev. 5 (CA, RA Controls), NIST AI RMF, PCI DSS v4.0, ISO 27001:2022, GDPR Articles 28-35, SOC 2 Trust Services Criteria 2017, FedRAMP Baseline, официальной документации облачных compliance-сервисов (AWS Audit Manager, Azure Compliance Manager, GCP Compliance Reports Manager), публичных инцидентов (Capital One 2019), материалов CJEU Schrems II decision, и best practices CSA STAR (Security Trust Assurance and Risk)._
