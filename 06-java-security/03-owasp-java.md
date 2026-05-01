@@ -98,6 +98,99 @@ OWASP Top 10 — приоритизированный список.
 
 **Java-защита:**
 - Spring Security с MFA
+- JWT с коротким сроком жизни
+- Защита от brute force (Rate Limiting)
+
+### A08: Software and Data Integrity Failures
+
+| Описание | Пример |
+|----------|--------|
+| Нарушение целостности данных | Подделка JWT-токена |
+
+**Java-защита:**
+- Проверка подписи токенов
+- Цифровые подписи артефактов
+- Dependabot для проверки зависимостей
+
+### A09: Security Logging and Monitoring Failures
+
+| Описание | Пример |
+|----------|--------|
+| Нет логирования безопасности | Атака проходит незамеченной |
+
+**Java-защита:**
+- SLF4J + Logback
+- Логирование входов/выходов
+- SIEM-интеграция
+
+### A10: Server-Side Request Forgery (SSRF)
+
+| Описание | Пример |
+|----------|--------|
+| Сервер делает запросы от имени клиента | Обращение к localhost |
+
+**Java-защита:**
+- Валидация URL
+- Whitelist допустимых адресов
+- Отключение ненужных схем (file://, ftp://)
+
+## Часть 4: OWASP для Java-разработчика
+
+### Практический подход
+
+**Шаг 1:** Установить OWASP Dependency Check
+
+```bash
+# Maven plugin
+<plugin>
+    <groupId>org.owasp</groupId>
+    <artifactId>dependency-check-maven</artifactId>
+    <version>8.2.1</version>
+</plugin>
+```
+
+**Шаг 2:** Интегрировать в CI/CD
+
+```yaml
+# GitHub Actions
+- name: OWASP Dependency Check
+  run: mvn org.owasp:dependency-check-maven:check
+```
+
+**Шаг 3:** Настроить pre-commit hook
+
+```bash
+# .git/hooks/pre-commit
+mvn dependency-check:check
+```
+
+### Интервью Q&A
+
+**Вопрос:** Как защититься от SQL Injection в Java?
+**Ответ:** Использовать PreparedStatement, ORM с параметрами, валидацию входных данных.
+
+**Вопрос:** Почему важно обновлять зависимости?
+**Ответ:** Устаревшие библиотеки содержат известные уязвимости (например, Log4j CVE-2021-44228).
+
+## Часть 5: Комплаенс и стандарты
+
+### Соответствие OWASP
+
+| Стандарт | Требование | Реализация |
+|----------|------------|------------|
+| PCI DSS | Защита данных карт | Шифрование, OWASP ASVS |
+| ISO 27001 | Управление рисками | Регулярные проверки |
+| NIST SSDF | Secure SDLC | Интеграция в разработку |
+
+### Полезные ресурсы
+
+- OWASP Top 10: https://owasp.org/Top10/
+- OWASP ASVS: https://owasp.org/asvs/
+- OWASP Cheat Sheets: https://cheatsheetseries.owasp.org/
+
+## Вывод
+
+OWASP Top 10 — фундамент безопасности Java-приложений. Не просто список, а практический инструмент для защиты от реальных угроз.
 - Блокировка после N попыток
 - Сложные пароли
 
