@@ -75,17 +75,15 @@
 | Угадали ID | Предсказуемые ID |
 | Решение | Криптографически случайные |
 
-## Конфигурация Spring Security
+Конфигурация Spring Security:
 
-```java
-http.sessionManagement(session -> session
-    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-    .maximumSessions(1) // один пользователь - одна сессия
-    .maxSessionsPreventsLogin(false)
-    .expiredUrl("/login?expired")
-    .sessionFixation(SessionFixationConfigurer::newSession) // менять ID
-);
-```
+    http.sessionManagement(session -> session
+        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+        .maximumSessions(1)
+        .maxSessionsPreventsLogin(false)
+        .expiredUrl("/login?expired")
+        .sessionFixation(SessionFixationConfigurer::newSession)
+    );
 
 ## CSRF
 
@@ -101,11 +99,9 @@ http.sessionManagement(session -> session
 | SameSite Cookie | SameSite=Strict или Lax |
 | Double Submit | Токен в cookie и форме |
 
-```java
-http.csrf(csrf -> csrf
-    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-);
-```
+    http.csrf(csrf -> csrf
+        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+    );
 
 ## Лучшие практики
 
