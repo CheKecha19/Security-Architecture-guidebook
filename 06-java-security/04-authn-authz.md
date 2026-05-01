@@ -147,3 +147,269 @@ Kerberos в Java требует конфигурации krb5.conf (распол
 Важный аспект LDAP-интеграции — **безопасность соединения**. В корпоративных сетях обязательно использование **LDAPS** (LDAP over SSL/TLS) или **StartTLS** (переход на шифрованный канал после установки соединения). Передача паролей и учётных данных по незашифрованному LDAP — критическая уязвимость. Spring Security автоматически поддерживает ldaps:// URL, но требует, чтобы сертификат LDAP-сервера был доверенным для JVM (хранилище truststore).
 
 LDAP часто комбинируется с Kerberos: Kerberos отвечает за аутентификацию (проверку, что пользователь тот, за кого себя выдаёт), а LDAP — за авторизацию (предоставление списка ролей и атрибутов). В Active Directory эти две функции объединены в одном каталоге, что делает интеграцию особенно удобной для Java-приложений в Windows-инфраструктурах.
+
+## Часть 2: Spring Security в деталях
+
+### Архитектура фильтров
+
+Spring Security построен на цепочке сервлет-фильтров. Каждый запрос проходит через последовательность фильтров, каждый из которых отвечает за свой аспект безопасности:
+
+| Фильтр | Назначение |
+|--------|------------|
+| SecurityContextPersistenceFilter | Восстанавливает SecurityContext из сессии |
+| UsernamePasswordAuthenticationFilter | Обрабатывает форму логина |
+| BasicAuthenticationFilter | Обрабатывает HTTP Basic аутентификацию |
+| BearerTokenAuthenticationFilter | Обрабатывает JWT-токены |
+| ExceptionTranslationFilter | Перехватывает исключения доступа |
+| FilterSecurityInterceptor | Финальная проверка авторизации |
+
+Порядок фильтров критичен: аутентификация должна произойти до авторизации. Spring Security автоматически управляет порядком через @Order, но при кастомизации важно не нарушить последовательность.
+
+### Модель авторизации
+
+Spring Security предоставляет несколько уровней авторизации:
+
+**URL-уровень (Web Security)** — самый грубый, но простой. Защита эндпоинтов по путям:
+- /public/** — доступно всем
+- /user/** — требуется аутентификация
+- /admin/** — требуется роль ADMIN
+
+**Метод-уровень (Method Security)** — тонкая настройка через аннотации:
+- @PreAuthorize("hasRole('ADMIN')") — перед вызовом метода
+- @PostAuthorize — после вызова, проверка результата
+- @Secured("ROLE_USER") — устаревший аналог
+- @RolesAllowed — стандарт Java EE
+
+**Доменный уровень (ACL)** — самый гибкий. Проверка прав на конкретный объект:
+- Пользователь может редактировать только свои документы
+- Менеджер — документы своего отдела
+- Администратор — все документы
+
+### Практический пример
+
+Представь банковское приложение. Требования:
+- Перевод денег — только аутентифицированным
+- Сумма > 100K — требуется подтверждение менеджера
+- Просмотр чужих счетов — только администраторам
+
+Реализация через Spring Security:
+
+**Конфигурация URL:**
+```
+http.authorizeRequests()
+    .antMatchers("/login", "/register").permitAll()
+    .antMatchers("/transfer/**").authenticated()
+    .antMatchers("/admin/**").hasRole("ADMIN")
+```
+
+**Аннотации на сервисе:**
+```
+@PreAuthorize("isAuthenticated()")
+public void transfer(@RequestParam String fromAccount,
+                     @RequestParam String toAccount,
+                     @RequestParam BigDecimal amount) {
+    // логика перевода
+}
+
+@PreAuthorize("hasRole('ADMIN') or #account.owner == authentication.name")
+public Account getAccount(String accountId) {
+    // логика получения счёта
+}
+```
+
+**Доменная проверка:**
+```
+@Component
+public class AccountPermissionEvaluator implements PermissionEvaluator {
+    @Override
+    public boolean hasPermission(Authentication auth,
+                                  Object targetDomain, Object permission) {
+        Account account = (Account) targetDomain;
+        return account.getOwner().equals(auth.getName()) ||
+               hasRole(auth, "ADMIN");
+    }
+}
+```
+
+## Часть 3: OAuth 2.0 и OpenID Connect
+
+### Роли и потоки
+
+OAuth 2.0 определяет четыре роли:
+- **Resource Owner** — владелец данных (пользователь)
+- **Client** — приложение, запрашивающее доступ
+- **Authorization Server** — выдаёт токены
+- **Resource Server** — хранит защищённые данные
+
+Основные потоки:
+
+| Поток | Когда используется | Безопасность |
+|-------|-------------------|--------------|
+| Authorization Code | Веб-приложения, серверный рендеринг | Высокая |
+| PKCE | Мобильные и SPA-приложения | Высокая |
+| Client Credentials | Сервер-сервер интеграции | Средняя |
+| Device Code | Устройства с ограниченным вводом | Средняя |
+
+### JWT-токены
+
+**Access Token** — краткосрочный (15-60 минут), содержит claims:
+- sub — идентификатор пользователя
+- scope — разрешённые действия
+- exp — время истечения
+- iss — издатель токена
+
+**Refresh Token** — долгосрочный, используется для получения нового Access Token. Хранится безопасно, никогда не передаётся клиенту в открытом виде.
+
+**ID Token** (OIDC) — JWT с информацией о пользователе:
+- name, email, preferred_username
+- email_verified — подтверждён ли email
+- nonce — защита от replay-атак
+
+### Spring Security OAuth2
+
+Конфигурация Resource Server:
+```
+@Bean
+SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http.oauth2ResourceServer(oauth2 ->
+        oauth2.jwt(jwt ->
+            jwt.jwkSetUri("https://auth-server/.well-known/jwks.json")
+        )
+    );
+    return http.build();
+}
+```
+
+Конфигурация Client:
+```
+spring.security.oauth2.client.registration.google.client-id=xxx
+spring.security.oauth2.client.registration.google.client-secret=yyy
+spring.security.oauth2.client.registration.google.scope=openid,profile,email
+```
+
+## Часть 4: Практические сценарии
+
+### Сценарий 1: Enterprise SSO
+
+**Задача:** Интеграция с корпоративным Active Directory
+
+**Решение:**
+```
+@Configuration
+public class SecurityConfig {
+    @Bean
+    public ActiveDirectoryLdapAuthenticationProvider adProvider() {
+        ActiveDirectoryLdapAuthenticationProvider provider =
+            new ActiveDirectoryLdapAuthenticationProvider(
+                "corp.company.com",
+                "ldaps://ad.corp.company.com:636",
+                "DC=corp,DC=company,DC=com"
+            );
+        provider.setConvertSubErrorCodesToExceptions(true);
+        provider.setUseAuthenticationRequestCredentials(true);
+        return provider;
+    }
+}
+```
+
+**Преимущества:**
+- Единый вход для всех корпоративных приложений
+- Централизованное управление учётными записями
+- Автоматическое отключение при увольнении
+
+### Сценарий 2: API Gateway
+
+**Задача:** Защита микросервисов через API Gateway
+
+**Архитектура:**
+```
+Клиент → API Gateway (проверяет JWT) → Сервис А
+                                      → Сервис Б
+                                      → Сервис В
+```
+
+**Реализация Gateway:**
+```
+@Component
+public class JwtGatewayFilter implements GlobalFilter {
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String token = extractToken(exchange.getRequest());
+        if (!jwtUtil.validateToken(token)) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+        return chain.filter(exchange);
+    }
+}
+```
+
+### Сценарий 3: Микросервисы с mTLS
+
+**Задача:** Взаимная аутентификация сервисов
+
+**Конфигурация:**
+```
+server.ssl.enabled=true
+server.ssl.client-auth=need
+server.ssl.key-store=service-a.p12
+server.ssl.trust-store=ca-truststore.p12
+```
+
+**Преимущества:**
+- Автоматическая аутентификация сервисов
+- Шифрование всего трафика
+- Нет необходимости в токенах для межсервисного взаимодействия
+
+## Часть 5: Комплаенс и аудит
+
+### Требования стандартов
+
+| Стандарт | Требования к аутентификации |
+|----------|---------------------------|
+| PCI DSS | MFA, шифрование, аудит |
+| GDPR | Защита персональных данных, минимальные привилегии |
+| HIPAA | Аудит доступа к медицинским данным |
+| SOX | Контроль доступа к финансовым системам |
+
+### Аудит в Spring Security
+
+```
+@Component
+public class SecurityAuditListener {
+    @EventListener
+    public void onAuthSuccess(AuthenticationSuccessEvent event) {
+        audit.log("LOGIN_SUCCESS", event.getAuthentication().getName());
+    }
+
+    @EventListener
+    public void onAuthFailure(AbstractAuthenticationFailureEvent event) {
+        audit.log("LOGIN_FAILURE", event.getAuthentication().getName(),
+                  event.getException().getMessage());
+    }
+}
+```
+
+### Проверка безопасности
+
+Чек-лист для аудита:
+- [ ] Пароли хранятся с BCrypt (стоимость ≥ 12)
+- [ ] Сессии имеют таймаут (≤ 30 минут бездействия)
+- [ ] HTTPS обязателен для всех эндпоинтов
+- [ ] MFA для административных ролей
+- [ ] Rate limiting на endpoints аутентификации
+- [ ] Логирование всех событий безопасности
+- [ ] Регулярное обновление зависимостей
+- [ ] Тестирование на OWASP Top 10
+
+## Выводы
+
+Аутентификация и авторизация в Java прошли путь от простых проверок JAAS до распределённых систем с нулевым доверием. Ключевые принципы:
+
+1. **Разделение ответственности** — аутентификация отдельно от авторизации
+2. **Минимальные привилегии** — давать только необходимый доступ
+3. **Defense in depth** — несколько слоёв защиты
+4. **Stateless токены** — JWT для масштабируемости
+5. **Continuous verification** — проверять при каждом запросе
+
+Современный Java-разработчик должен владеть Spring Security, понимать OAuth 2.0/OIDC, уметь интегрироваться с LDAP/Kerberos и проектировать безопасную архитектуру с самого начала.
