@@ -1,122 +1,81 @@
 # Backup и Recovery PostgreSQL
 
-## Часть 1: Зачем нужен бэкап?
+## Что такое бэкап?
 
-Представь дневник, который ты ведёшь всю жизнь. Дом сгорел — дневник сгорел. Но если есть копии в сейфе у друга, в банке, в облаке — дневник сохранён.
+Представь дневник, который ты ведёшь всю жизнь. Дом сгорел — дневник сгорел. Но если есть копии в сейфе — дневник сохранён.
 
 **Backup** — копии данных. **Recovery** — восстановление из копий.
 
-## Зачем нужен бэкап?
+## Зачем это нужно?
 
-### Ситуация 1: Удаление данных
+### Сценарий 1: Удаление данных
 
 `DROP TABLE users CASCADE;` — всё удалилось. Без бэкапа — потеряно навсегда.
 
-### Ситуация 2: Повреждение диска
+### Сценарий 2: Повреждение диска
 
 Жёсткий диск вышел из строя. Данные нечитаемы. Без бэкапа — конец.
 
-### Ситуация 3: Ransomware
+### Сценарий 3: Ransomware
 
 Файлы зашифрованы. Требуют выкуп. Без бэкапа — платить или потерять всё.
 
-## Часть 2: Логический бэкап (pg_dump)
+## Основные концепции
 
-### pg_dump
+### Логический бэкап (pg_dump)
 
-    # SQL-бэкап
-    pg_dump -h localhost -U postgres -d mydb > backup.sql
-    
-    # Сжатый формат
-    pg_dump -h localhost -U postgres -d mydb -Fc -f backup.dump
-    
-    # Только структура
-    pg_dump -h localhost -U postgres -d mydb -s > schema.sql
-    
-    # Только данные
-    pg_dump -h localhost -U postgres -d mydb -a > data.sql
-    
-    # Параллельный
-    pg_dump -h localhost -U postgres -d mydb -Fd -j 4 -f backup_dir/
+```bash
+# SQL-бэкап
+pg_dump -h localhost -U postgres -d mydb > backup.sql
 
-### pg_dumpall
+# Сжатый формат
+pg_dump -h localhost -U postgres -d mydb -Fc -f backup.dump
 
-    # Все базы + глобальные объекты
-    pg_dumpall -h localhost -U postgres > all_databases.sql
+# Восстановление
+pg_restore -h localhost -U postgres -d mydb backup.dump
+```
 
-### Восстановление
+### Физический бэкап (pg_basebackup)
 
-    # Из SQL
-    psql -h localhost -U postgres -d mydb < backup.sql
-    
-    # Из custom формата
-    pg_restore -h localhost -U postgres -d mydb backup.dump
-    
-    # Параллельное восстановление
-    pg_restore -h localhost -U postgres -d mydb -j 4 backup.dump
+```bash
+# Бэкап
+pg_basebackup -h primary -D /backup/base -U replicator -P -v
 
-## Часть 3: Физический бэкап (pg_basebackup)
+# WAL-архивирование
+archive_mode = on
+archive_command = 'cp %p /backup/wal/%f'
+```
 
-### pg_basebackup
+### Point-in-Time Recovery
 
-    # Простой бэкап
-    pg_basebackup -h primary -D /backup/base -U replicator -P -v
-    
-    # С потоковым WAL
-    pg_basebackup -h primary -D /backup/base -U replicator -P -v -X stream
-    
-    # Сжатый
-    pg_basebackup -h primary -D /backup/base -U replicator -P -v --gzip
+```bash
+# recovery.signal
+touch $PGDATA/recovery.signal
 
-### WAL-архивирование
+# Настройка восстановления
+echo "restore_command = 'cp /backup/wal/%f %p'" >> $PGDATA/postgresql.auto.conf
+echo "recovery_target_time = '2024-01-15 10:00:00'" >> $PGDATA/postgresql.auto.conf
+```
 
-    # postgresql.conf
-    archive_mode = on
-    archive_command = 'cp %p /backup/wal/%f'
+### Шифрование бэкапов
 
-### Восстановление (Point-in-Time Recovery)
+```bash
+# GPG
+pg_dump -h localhost -U postgres -d mydb | gpg --encrypt --recipient admin@example.com > backup.sql.gpg
 
-    # Остановить PostgreSQL
-    pg_ctl stop -D $PGDATA
-    
-    # Удалить старые данные
-    rm -rf $PGDATA/*
-    
-    # Распаковать бэкап
-    tar -xzf /backup/base.tar.gz -C $PGDATA
-    
-    # Настроить восстановление
-    touch $PGDATA/recovery.signal
-    echo "restore_command = 'cp /backup/wal/%f %p'" >> $PGDATA/postgresql.auto.conf
-    echo "recovery_target_time = '2024-01-15 10:00:00'" >> $PGDATA/postgresql.auto.conf
-    
-    # Запустить
-    pg_ctl start -D $PGDATA
+# Облако
+aws s3 cp backup.dump s3://mybucket/backups/ --sse aws:kms
+```
 
-## Часть 4: Шифрование бэкапов
+### Автоматизация (pgBackRest)
 
-### GPG
+```bash
+# Полный бэкап
+pgbackrest --stanza=mydb backup --type=full
 
-    pg_dump -h localhost -U postgres -d mydb | gpg --encrypt --recipient admin@example.com > backup.sql.gpg
-    
-    gpg --decrypt backup.sql.gpg > backup.sql
-
-### Облачное шифрование
-
-    aws s3 cp backup.dump s3://mybucket/backups/ --sse aws:kms --sse-kms-key-id alias/postgres-backup
-
-## Часть 5: Автоматизация
-
-### pgBackRest
-
-    # Полный бэкап
-    pgbackrest --stanza=mydb backup --type=full
-    
-    # Инкрементальный
-    pgbackrest --stanza=mydb backup --type=diff
-    
-    # Восстановление
-    pgbackrest --stanza=mydb restore
+# Инкрементальный
+pgbackrest --stanza=mydb backup --type=diff
+```
 
 ### Стратегия 3-2-1
 
@@ -126,28 +85,41 @@
 | 2 разных носителя | Диск + облако |
 | 1 оффсайт | В другом месте |
 
-## Лучшие практики
+## Уроки из инцидентов
 
-| Практика | Описание |
-|----------|----------|
-| Регулярно | Ежедневно минимум |
-| Тестировать | Восстановление раз в месяц |
-| Шифровать | Все бэкапы |
-| Хранить | Offsite |
-| WAL | Архивировать |
-| Автоматизация | pgBackRest / WAL-G |
-| Мониторинг | Алерты на ошибки |
+### Инцидент 1: Незашифрованный backup (2019)
 
-## Вывод
+Backup на NFS без шифрования. Злоумышленник получил доступ — скачал backup. Все данные открытым текстом.
 
-Backup и Recovery:
-1. **pg_dump** — логический, гибкий
-2. **pg_basebackup** — физический, быстрый
-3. **WAL** — точечное восстановление
-4. **Шифрование** — защита копий
-5. **Автоматизация** — pgBackRest
+**Решение:** Шифрование backup. Ограничение доступа.
 
-Правило: **если бэкап не тестировался — его нет.**
+### Инцидент 2: Непроверенное восстановление (2020)
+
+Backup делался, но восстановление не тестировалось. При инциденте — backup оказался corrupted.
+
+**Решение:** Регулярное тестирование восстановления.
+
+## Чек-лист понимания
+
+- [ ] Что такое **pg_dump**?
+- [ ] Что такое **pg_basebackup**?
+- [ ] Что такое **WAL-архивирование**?
+- [ ] Как **восстановить** базу?
+- [ ] Что такое **Point-in-Time Recovery**?
+- [ ] Как **шифровать** backup?
+- [ ] Что такое **pgBackRest**?
+- [ ] Какая **стратегия** 3-2-1?
+- [ ] Как **тестировать** backup?
+- [ ] Как **автоматизировать**?
+
+## Выводы
+
+- **Backup — обязателен** — pg_dump + pg_basebackup
+- **WAL** — для point-in-time recovery
+- **Шифрование** — защита копий
+- **Тестирование** — если не тестировал — backup не работает
+- **3-2-1** — минимальная стратегия
 
 ---
+
 _Статья создана на основе анализа материалов по PostgreSQL_

@@ -1,106 +1,110 @@
 # Репликация и высокая доступность PostgreSQL
 
-## Часть 1: Зачем нужна репликация?
+## Что такое репликация?
 
-Представь библиотеку. Один экземпляр книги — если украдут или сожгут, книги больше нет. Но если есть копии в разных филиалах — книга сохранена.
+Представь библиотеку. Один экземпляр книги — если украдут, книги больше нет. Но если есть копии в разных филиалах — книга сохранена.
 
-**Репликация PostgreSQL** — создание копий базы на других серверах:
-- **Отказоустойчивость** — primary упал, standby работает
-- **Масштабирование чтения** — читаем с реплик
-- **Бэкап** — без нагрузки на primary
-- **Географическая распределённость** — реплики ближе к пользователям
+**Репликация PostgreSQL** — создание копий базы на других серверах. Зачем: отказоустойчивость, масштабирование чтения, бэкап без нагрузки, географическая распределённость.
 
-## Часть 2: Физическая репликация
+## Зачем это нужно?
 
-### Streaming Replication
+### Сценарий 1: Отказоустойчивость
 
-1. Primary пишет изменения в WAL
-2. WAL передаётся на standby в реальном времени
-3. Standby применяет WAL
+Primary сервер падает. Без репликации — downtime до восстановления из backup. С репликацией — standby становится primary за секунды.
 
-### Настройка Primary
+### Сценарий 2: Масштабирование чтения
 
-    # postgresql.conf
-    wal_level = replica
-    max_wal_senders = 10
-    wal_keep_size = 1GB
-    max_replication_slots = 5
-    
-    # pg_hba.conf
-    hostssl replication replicator 10.0.0.0/24 scram-sha-256
+Приложение читает данные чаще, чем пишет. Primary перегружен. С репликацией — чтение направляется на standby.
 
-### Создание пользователя репликации
+### Сценарий 3: Географическая распределённость
 
-    CREATE ROLE replicator WITH LOGIN REPLICATION PASSWORD 'strong-password';
+Пользователи в Европе и Азии. Primary в Европе. Азиатские пользователи испытывают latency. С репликой в Азии — чтение локально.
 
-### Настройка Standby
+## Основные концепции
 
-    # postgresql.conf
-    hot_standby = on
-    
-    # primary_conninfo
-    primary_conninfo = 'host=primary.example.com port=5432 user=replicator password=strong-password sslmode=require'
-    
-    # Для PostgreSQL 12+
-    touch $PGDATA/standby.signal
+### Физическая репликация
 
-### Проверка
+**Streaming Replication:** primary пишет WAL, standby применяет.
 
-    -- На primary
-    SELECT * FROM pg_stat_replication;
-    
-    -- На standby
-    SELECT * FROM pg_stat_wal_receiver;
+**Настройка primary:**
+```
+# postgresql.conf
+wal_level = replica
+max_wal_senders = 10
+wal_keep_size = 1GB
+max_replication_slots = 5
 
-## Часть 3: Логическая репликация
+# pg_hba.conf
+hostssl replication replicator 10.0.0.0/24 scram-sha-256
+```
 
-### Отличие от физической
+**Пользователь репликации:**
+```sql
+CREATE ROLE replicator WITH LOGIN REPLICATION PASSWORD 'strong-password';
+```
+
+**Настройка standby:**
+```
+# primary_conninfo
+primary_conninfo = 'host=primary.example.com port=5432 user=replicator password=strong-password sslmode=require'
+
+# PostgreSQL 12+
+touch $PGDATA/standby.signal
+```
+
+**Проверка:**
+```sql
+-- На primary
+SELECT * FROM pg_stat_replication;
+
+-- На standby
+SELECT * FROM pg_stat_wal_receiver;
+```
+
+### Логическая репликация
+
+**Публикация и подписка:**
+```sql
+-- На primary
+CREATE PUBLICATION users_pub FOR TABLE users;
+
+-- На standby
+CREATE SUBSCRIPTION users_sub
+CONNECTION 'host=primary port=5432 user=replicator password=strong-password sslmode=require dbname=mydb'
+PUBLICATION users_pub;
+```
+
+**Отличие от физической:**
 
 | Физическая | Логическая |
 |------------|------------|
-| Байт-в-байт копия | Только данные |
+| Байт-в-байт | Только данные |
 | Все базы | Выбранные таблицы |
 | DDL реплицируется | DDL не реплицируется |
 | PostgreSQL → PostgreSQL | Гибче |
 
-### Публикация и подписка
+### Слоты репликации
 
-    -- На primary
-    CREATE PUBLICATION users_pub FOR TABLE users;
-    
-    -- На standby
-    CREATE SUBSCRIPTION users_sub
-    CONNECTION 'host=primary port=5432 user=replicator password=strong-password sslmode=require dbname=mydb'
-    PUBLICATION users_pub;
+**Гарантируют:** WAL не удалится, пока standby не получит.
 
-### Безопасность логической репликации
+```sql
+-- Создать слот
+SELECT pg_create_physical_replication_slot('standby_slot', true);
 
-    -- Пользователь для логической репликации
-    CREATE ROLE logical_replica WITH LOGIN PASSWORD 'strong-password';
-    GRANT SELECT ON users TO logical_replica;
+-- Использовать
+primary_slot_name = 'standby_slot'
+```
 
-## Часть 4: Слоты репликации
+### Failover
 
-### Что такое слот
+**Ручной:**
+```
+pg_ctl promote -D /var/lib/postgresql/data
+-- или
+SELECT pg_promote();
+```
 
-Гарантирует, что WAL не удалится, пока standby не получит его.
-
-    -- Создать слот
-    SELECT pg_create_physical_replication_slot('standby_slot', true);
-    
-    -- Использовать в primary_conninfo
-    primary_slot_name = 'standby_slot'
-
-## Часть 5: Failover
-
-### Ручной failover
-
-    -- На standby
-    pg_ctl promote -D /var/lib/postgresql/data
-    -- Или
-    SELECT pg_promote();
-
-### Patroni (автоматический)
+**Автоматический (Patroni):**
 
 | Компонент | Роль |
 |-----------|------|
@@ -110,20 +114,47 @@
 
 ### Синхронная репликация
 
-    # postgresql.conf
-    synchronous_commit = remote_apply
-    synchronous_standby_names = 'FIRST 1 (standby1, standby2)'
+```
+# postgresql.conf
+synchronous_commit = remote_apply
+synchronous_standby_names = 'FIRST 1 (standby1, standby2)'
+```
 
-## Вывод
+## Уроки из инцидентов
 
-Репликация PostgreSQL:
-1. **Физическая** — для отказоустойчивости
-2. **Логическая** — для гибкости
-3. **Слоты** — для гарантии доставки
-4. **Failover** — ручной или автоматический
-5. **Мониторинг** — lag, состояние
+### Инцидент 1: Рассинхронизация реплик (2019)
 
-Без репликации — single point of failure.
+Primary и standby потеряли связь. WAL на primary удалился (retention). Standby не смог догнать. При failover — потеря данных.
+
+**Решение:** Увеличить `wal_keep_size`. Использовать replication slots.
+
+### Инцидент 2: Неправильный failover (2020)
+
+Администратор промоутировал standby вручную, не проверив синхронизацию. Данные на standby были на 2 часа старше. Потеря транзакций.
+
+**Решение:** Проверять `pg_stat_replication` перед failover. Использовать Patroni.
+
+## Чек-лист понимания
+
+- [ ] Что такое **WAL**?
+- [ ] Как работает **streaming replication**?
+- [ ] Чем **физическая** отличается от **логической**?
+- [ ] Что такое **слот репликации**?
+- [ ] Как выполнить **failover**?
+- [ ] Что такое **synchronous_commit**?
+- [ ] Как **мониторить** репликацию?
+- [ ] Как **Patroni** работает?
+- [ ] Какие **риски** у репликации?
+- [ ] Как **защитить** репликацию?
+
+## Выводы
+
+- **Репликация — обязательна** для production
+- **Physical** — для DR, **Logical** — для гибкости
+- **Slots** — для гарантии доставки
+- **Patroni** — для автоматического failover
+- **Мониторинг** — lag, состояние, ошибки
 
 ---
+
 _Статья создана на основе анализа материалов по PostgreSQL_

@@ -1,95 +1,81 @@
 # Мониторинг PostgreSQL
 
-## Часть 1: Зачем мониторить?
+## Что такое мониторинг?
 
 Представь электростанцию без приборов. Не знаешь температуру, давление, радиацию. Превышение — авария.
 
 **Мониторинг PostgreSQL** — приборная панель для базы данных. Здорова ли база? Не перегружается ли? Нет ли проблем?
 
-## Часть 2: Встроенная статистика
+## Зачем это нужно?
+
+### Сценарий 1: Медленные запросы
+
+Пользователи жалуются: «Сайт тормозит». Без мониторинга — непонятно почему. С мониторингом — видно: один запрос занимает 30 секунд, блокирует таблицу.
+
+### Сценарий 2: Заканчивается место
+
+Диск заполнен на 95%. Без мониторинга — база падает. С мониторингом — алерт при 80%, время на реакцию.
+
+### Сценарий 3: Подозрительная активность
+
+В 3 часа ночи — необычно много запросов. Мониторинг показывает: кто и откуда подключался.
+
+## Основные концепции
 
 ### pg_stat_activity
 
-    -- Текущие подключения
-    SELECT pid, usename, application_name, client_addr, state, query
-    FROM pg_stat_activity WHERE state != 'idle';
-    
-    -- Долгие запросы (> 5 сек)
-    SELECT pid, usename, now() - query_start as duration, query
-    FROM pg_stat_activity
-    WHERE state = 'active' AND now() - query_start > interval '5 seconds';
-    
-    -- Блокировки
-    SELECT blocked_locks.pid AS blocked_pid,
-           blocking_locks.pid AS blocking_pid,
-           blocked_activity.query AS blocked_query
-    FROM pg_catalog.pg_locks blocked_locks
-    JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
-    JOIN pg_catalog.pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
-    JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
-    WHERE NOT blocked_locks.granted;
+```sql
+-- Текущие подключения
+SELECT pid, usename, application_name, client_addr, state, query
+FROM pg_stat_activity WHERE state != 'idle';
+
+-- Долгие запросы
+SELECT pid, usename, now() - query_start as duration, query
+FROM pg_stat_activity
+WHERE state = 'active' AND now() - query_start > interval '5 seconds';
+
+-- Блокировки
+SELECT blocked_locks.pid AS blocked_pid,
+       blocking_locks.pid AS blocking_pid,
+       blocked_activity.query AS blocked_query
+FROM pg_catalog.pg_locks blocked_locks
+JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
+JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
+WHERE NOT blocked_locks.granted;
+```
 
 ### pg_stat_statements
 
-    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-    
-    -- Самые медленные запросы
-    SELECT query, calls, mean_exec_time, total_exec_time
-    FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;
-    
-    -- Самые частые
-    SELECT query, calls FROM pg_stat_statements ORDER BY calls DESC LIMIT 10;
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+-- Самые медленные запросы
+SELECT query, calls, mean_exec_time, total_exec_time
+FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;
+
+-- Самые частые
+SELECT query, calls FROM pg_stat_statements ORDER BY calls DESC LIMIT 10;
+```
 
 ### pg_stat_database
 
-    SELECT datname, numbackends, xact_commit, xact_rollback,
-           blks_read, blks_hit,
-           round(blks_hit::numeric/(blks_hit + blks_read) * 100, 2) as cache_hit_ratio
-    FROM pg_stat_database;
+```sql
+SELECT datname, numbackends, xact_commit, xact_rollback,
+       blks_read, blks_hit,
+       round(blks_hit::numeric/(blks_hit + blks_read) * 100, 2) as cache_hit_ratio
+FROM pg_stat_database;
+```
 
-## Часть 3: Ключевые метрики
-
-### Производительность
-
-| Метрика | Хорошо | Плохо |
-|---------|--------|-------|
-| connections | < 80% max | > 90% |
-| cache_hit_ratio | > 99% | < 95% |
-| query_time_avg | < 100ms | > 1s |
-
-### Ресурсы
-
-| Метрика | Хорошо | Плохо |
-|---------|--------|-------|
-| CPU | < 70% | > 90% |
-| Memory | < 80% | > 95% |
-| Disk space | < 70% | > 85% |
-
-### Безопасность
-
-| Метрика | Описание |
-|---------|----------|
-| failed_logins | Неудачные попытки |
-| ssl_connections | Должно быть 100% |
-| superuser_queries | Алерт на неожиданные |
-| ddl_changes | Изменения структуры |
-
-## Часть 4: Инструменты
-
-### Prometheus + Grafana
-
-    -- postgres_exporter для метрик
-    -- Grafana для дашбордов
-    -- AlertManager для алертов
-
-### pgAdmin / pganalyze
+### Инструменты
 
 | Инструмент | Тип |
 |------------|-----|
-| pgAdmin | Бесплатный GUI |
-| pganalyze | Коммерческий, облачный |
+| **Prometheus + Grafana** | Open source |
+| **pgAdmin** | Бесплатный GUI |
+| **pganalyze** | Коммерческий |
 
-## Часть 5: Алерты
+### Алерты
 
 | Условие | Приоритет |
 |---------|-----------|
@@ -99,15 +85,41 @@
 | failed_logins > 5 за 5 мин | High |
 | query_time_avg > 1s | Warning |
 
-## Вывод
+## Уроки из инцидентов
 
-Мониторинг PostgreSQL:
-1. **Метрики** — что измеряем
-2. **Алерты** — когда реагируем
-3. **Инструменты** — Prometheus, Grafana, pgAdmin
-4. **Runbook** — как реагируем
+### Инцидент 1: Нет мониторинга lag (2019)
 
-Без мониторинга — слепота. С мониторингом — контроль.
+Репликация отстала на 2 часа. Никто не заметил. При failover — потеря 2 часов данных.
+
+**Решение:** Мониторинг `pg_stat_replication.replay_lag`.
+
+### Инцидент 2: Нет мониторинга deadlocks (2020)
+
+Deadlock каждые 5 минут. Приложение падает. Причина — race condition в коде.
+
+**Решение:** Мониторинг `pg_stat_database.deadlocks`.
+
+## Чек-лист понимания
+
+- [ ] Что такое **pg_stat_activity**?
+- [ ] Что такое **pg_stat_statements**?
+- [ ] Как найти **блокировки**?
+- [ ] Какие **метрики** мониторить?
+- [ ] Какие **инструменты** использовать?
+- [ ] Как настроить **алерты**?
+- [ ] Что такое **cache_hit_ratio**?
+- [ ] Как мониторить **replication lag**?
+- [ ] Как мониторить **deadlocks**?
+- [ ] Как централизовать **логи**?
+
+## Выводы
+
+- **Мониторинг — обязателен** — иначе слепота
+- **pg_stat_statements** — медленные и частые запросы
+- **pg_stat_activity** — текущие подключения
+- **Алерты** — на критичные метрики
+- **SIEM** — централизация и анализ
 
 ---
+
 _Статья создана на основе анализа материалов по PostgreSQL_
