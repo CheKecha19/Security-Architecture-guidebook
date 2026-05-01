@@ -1,225 +1,262 @@
 # Криптография в Java
 
-## Что такое криптография?
+## Часть 1: Что такое криптография?
 
 Представь, что ты отправляешь письмо. Не электронное, а настоящее, бумажное. Ты кладешь его в конверт. Но конверт — прозрачный. Все видят, что внутри.
 
 Теперь представь, что ты кладешь письмо в сейф. Сейф запираешь. Отправляешь. Получатель имеет ключ. Открывает. Читает. Никто по пути не видел содержимого.
 
-**Криптография** — это именно такой "сейф" для данных. Превращает понятную информацию в непонятный набор символов. Только у кого есть ключ — может прочитать.
+**Криптография** — это именно такой «сейф» для данных. Превращает понятную информацию в непонятный набор символов. Только у кого есть ключ — может прочитать.
 
 ## Зачем нужна криптография?
 
 ### Ситуация 1: Пароли
 
-Пользователь ввёл пароль. Если хранить как текст — утечка = все пароли раскрыты. Храним хеш — утечка = ничего страшного.
+Пользователь ввёл пароль. Если хранить как текст (`password123`) — утечка базы = все пароли раскрыты. Храним хеш (`$2a$12$...`) — утечка = ничего страшного. Хеш нельзя «расшифровать».
 
 ### Ситуация 2: Данные
 
-База данных содержит персональные данные. Если диск украдут — данные зашифрованы.
+База данных содержит персональные данные: паспорта, адреса. Если диск украдут — данные зашифрованы. Без ключа — бесполезны.
 
 ### Ситуация 3: Связь
 
-Два сервера общаются. Если трафик перехватят — ничего не поймут.
+Два сервера общаются по интернету. Если трафик перехватят — ничего не поймут. TLS шифрует всё.
 
-## Типы криптографии
+## Часть 2: Типы криптографии
 
 ### Хеширование
 
-| Алгоритм | Описание | Безопасность |
-|----------|----------|--------------|
-| MD5 | 128 бит | Небезопасен |
-| SHA-1 | 160 бит | Небезопасен |
-| SHA-256 | 256 бит | Безопасен |
-| SHA-3 | Переменная | Безопасен |
+**Хеширование** — односторонняя функция. Из данных получается фиксированная строка. Нельзя восстановить данные из хеша.
 
-```java
-MessageDigest digest = MessageDigest.getInstance("SHA-256");
-byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-```
+| Алгоритм | Длина | Статус |
+|----------|-------|--------|
+| MD5 | 128 бит | ❌ Устарел, коллизии |
+| SHA-1 | 160 бит | ❌ Устарел, коллизии |
+| SHA-256 | 256 бит | ✅ Безопасен |
+| SHA-3 | 256-512 бит | ✅ Безопасен |
+| BLAKE2 | 256-512 бит | ✅ Быстрый, безопасен |
+
+    // SHA-256
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest("password".getBytes(StandardCharsets.UTF_8));
+    String hex = Base64.getEncoder().encodeToString(hash);
+
+**Пароли НЕ хешируются SHA-256!** Для паролей — специальные алгоритмы (см. ниже).
 
 ### Симметричное шифрование
 
-| Алгоритм | Ключ | Описание |
-|----------|------|----------|
-| AES | 128/256 бит | Стандарт |
-| ChaCha20 | 256 бит | Современный |
-| 3DES | 168 бит | Устарел |
+Один ключ для шифрования и дешифрования.
 
-```java
-SecretKey key = KeyGenerator.getInstance("AES").generateKey();
-Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-cipher.init(Cipher.ENCRYPT_MODE, key);
-byte[] encrypted = cipher.doFinal(data.getBytes());
-```
+| Алгоритм | Ключ | Режим | Статус |
+|----------|------|-------|--------|
+| AES | 128/256 бит | GCM, CBC | ✅ Стандарт |
+| ChaCha20 | 256 бит | Poly1305 | ✅ Современный |
+| 3DES | 168 бит | CBC | ❌ Устарел |
+
+    // AES-256-GCM
+    SecretKey key = KeyGenerator.getInstance("AES").generateKey();
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+    cipher.init(Cipher.ENCRYPT_MODE, key);
+    byte[] encrypted = cipher.doFinal("secret".getBytes());
+    
+    byte[] iv = cipher.getIV();  // Сохранить для дешифрования
 
 ### Асимметричное шифрование
 
-| Алгоритм | Ключи | Описание |
-|----------|-------|----------|
-| RSA | 2048+ бит | Универсальный |
-| ECC | 256+ бит | Современный |
+Два ключа: публичный (шифрует) и приватный (дешифрует).
+
+| Алгоритм | Ключ | Использование |
+|----------|------|---------------|
+| RSA | 2048-4096 бит | Универсальный |
+| ECC (ECDSA) | 256-521 бит | Современный, быстрый |
 | DH | — | Обмен ключами |
 
-```java
-KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-keyGen.initialize(2048);
-KeyPair pair = keyGen.generateKeyPair();
-```
+    // RSA
+    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+    keyGen.initialize(2048);
+    KeyPair pair = keyGen.generateKeyPair();
+    
+    // Шифрование публичным ключом
+    Cipher cipher = Cipher.getInstance("RSA");
+    cipher.init(Cipher.ENCRYPT_MODE, pair.getPublic());
+    byte[] encrypted = cipher.doFinal("secret".getBytes());
 
 ### Цифровая подпись
+
+Доказывает: данные не изменены, отправитель — именно он.
 
 | Алгоритм | Описание |
 |----------|----------|
 | RSA + SHA-256 | Стандарт |
-| ECDSA | ECC-based |
-| Ed25519 | Современный |
+| ECDSA | ECC-based, быстрый |
+| Ed25519 | Современный, безопасный |
 
-```java
-Signature signature = Signature.getInstance("SHA256withRSA");
-signature.initSign(privateKey);
-signature.update(data.getBytes());
-byte[] sig = signature.sign();
-```
+    // Подпись
+    Signature signature = Signature.getInstance("SHA256withRSA");
+    signature.initSign(privateKey);
+    signature.update(data.getBytes());
+    byte[] sig = signature.sign();
+    
+    // Проверка
+    Signature verifier = Signature.getInstance("SHA256withRSA");
+    verifier.initVerify(publicKey);
+    verifier.update(data.getBytes());
+    boolean valid = verifier.verify(sig);
 
-## JCA и JCE
+## Часть 3: JCA и JCE
 
 ### Java Cryptography Architecture (JCA)
 
+Архитектура криптографии в Java:
+
 | Компонент | Описание |
 |-----------|----------|
-| Provider | Реализация алгоритмов |
-| Engine | Интерфейс (Cipher, Signature) |
-| SPI | Service Provider Interface |
+| Provider | Реализация алгоритмов (Sun, BouncyCastle) |
+| Engine | Интерфейс: Cipher, Signature, MessageDigest |
+| SPI | Service Provider Interface — для создания провайдеров |
 
 ### Java Cryptography Extension (JCE)
 
-| Ограничение | Решение |
-|-------------|---------|
-| 128-bit key | Unlimited Strength Jurisdiction Policy |
-| Алгоритмы | BouncyCastle |
+Расширение с дополнительными алгоритмами.
+
+**История проблемы:** До Java 9 был «Export Policy» — максимум 128-битные ключи. Нужно было скачивать «Unlimited Strength Jurisdiction Policy Files». С Java 9 — unlimited по умолчанию.
 
 ### BouncyCastle
 
-```java
-Security.addProvider(new BouncyCastleProvider());
-Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
-```
+Популярный сторонний провайдер:
 
-## Хеширование паролей
+    // Добавить провайдер
+    Security.addProvider(new BouncyCastleProvider());
+    
+    // Использовать
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
 
-### Почему не SHA?
+## Часть 4: Хеширование паролей
 
-SHA быстрый. Для паролей — плохо. Можно перебирать миллионы в секунду.
+### Почему не SHA-256 для паролей?
+
+SHA-256 **быстрый**. Для паролей это плохо: можно перебирать миллиарды паролей в секунду на GPU.
+
+Для паролей нужны **медленные** алгоритмы: BCrypt, Argon2, SCrypt.
 
 ### BCrypt
 
-| Параметр | Описание |
-|----------|----------|
-| Salt | Автоматический |
-| Cost | Сложность (10-12) |
-| Output | 60 символов |
+    // Spring Security
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    String hash = encoder.encode("password");
+    boolean matches = encoder.matches("password", hash);
+    
+    // Пример хеша: $2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW
+    // $2a$ — версия
+    // 12$ — cost factor (2^12 итераций)
 
-```java
-BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
-String hash = encoder.encode(password);
-boolean matches = encoder.matches(password, hash);
-```
+| Параметр | Описание | Рекомендация |
+|----------|----------|--------------|
+| Cost | Сложность (логарифм итераций) | 12-14 |
+| Salt | Автоматический | Генерируется BCrypt |
+| Output | 60 символов | Хранить целиком |
 
 ### Argon2
 
+Победитель Password Hashing Competition (2015):
+
+    Argon2PasswordEncoder encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+    String hash = encoder.encode("password");
+
 | Параметр | Описание |
 |----------|----------|
-| Memory | Использование памяти |
+| Memory | Использование памяти (KB) |
 | Iterations | Итерации |
 | Parallelism | Параллелизм |
 
-```java
-Argon2PasswordEncoder encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-```
+### Сравнение алгоритмов паролей
 
-### SCrypt
+| Алгоритм | Медленный | Устойчив к GPU | Устойчив к ASIC | Рекомендация |
+|----------|-----------|----------------|-----------------|--------------|
+| SHA-256 | ❌ | ❌ | ❌ | ❌ Нет |
+| BCrypt | ✅ | ⚠️ | ⚠️ | ✅ Да |
+| SCrypt | ✅ | ✅ | ⚠️ | ✅ Да |
+| Argon2 | ✅ | ✅ | ✅ | ✅ Лучший |
 
-| Параметр | Описание |
-|----------|----------|
-| CPU | Использование CPU |
-| Memory | Использование памяти |
+## Часть 5: TLS/SSL
 
-## TLS/SSL
+### Версии TLS
 
-### Версии
+| Версия | Статус | Рекомендация |
+|--------|--------|--------------|
+| SSL 2.0 | ❌ Устарел | Запретить |
+| SSL 3.0 | ❌ Устарел | Запретить |
+| TLS 1.0 | ❌ Устарел | Запретить |
+| TLS 1.1 | ❌ Устарел | Запретить |
+| TLS 1.2 | ✅ Поддерживается | Минимум |
+| TLS 1.3 | ✅ Актуальная | Рекомендуется |
 
-| Версия | Безопасность |
-|--------|--------------|
-| SSL 2.0 | Небезопасен |
-| SSL 3.0 | Небезопасен |
-| TLS 1.0 | Устарел |
-| TLS 1.1 | Устарел |
-| TLS 1.2 | Минимум |
-| TLS 1.3 | Рекомендуется |
-
-### Конфигурация
-
-```java
-SSLContext context = SSLContext.getInstance("TLSv1.3");
-context.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
-```
+    // Настройка SSLContext
+    SSLContext context = SSLContext.getInstance("TLSv1.3");
+    context.init(keyManagerFactory.getKeyManagers(), 
+                 trustManagerFactory.getTrustManagers(), 
+                 new SecureRandom());
 
 ### Cipher Suites
 
-| Suite | Описание |
-|-------|----------|
-| TLS_AES_256_GCM_SHA384 | TLS 1.3 |
-| TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 | TLS 1.2 |
+| Suite | TLS | Описание |
+|-------|-----|----------|
+| TLS_AES_256_GCM_SHA384 | 1.3 | AES-256-GCM |
+| TLS_CHACHA20_POLY1305_SHA256 | 1.3 | ChaCha20 |
+| TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 | 1.2 | Forward secrecy |
+
+**Запрещённые:**
+- NULL шифры
+- EXPORT шифры
+- DES, 3DES
+- RC4
+- MD5
+- SHA1
 
 ## Лучшие практики
 
 | Практика | Описание |
 |----------|----------|
-| Не изобретай | Используй стандартные библиотеки |
+| Не изобретай своё | Используй стандартные библиотеки |
 | BCrypt/Argon2 | Для паролей |
-| AES-256-GCM | Для данных |
-| RSA-2048+ | Для асимметрии |
+| AES-256-GCM | Для шифрования данных |
+| RSA-2048+ или ECC-256+ | Для асимметрии |
 | TLS 1.3 | Для связи |
-| Случайность | SecureRandom |
-| Не храни ключи | KMS, HSM |
-| Обновляй | Алгоритмы, библиотеки |
+| SecureRandom | Для генерации случайных чисел |
+| Не храни ключи в коде | KMS, Vault, HSM |
+| Ротация ключей | Регулярно |
+| Обновляй библиотеки | Новые уязвимости |
 
-## Чек-лист понимания
+### Чек-лист
 
-- [ ] Что такое криптография?
-- [ ] Какие типы?
-- [ ] Чем хеширование отличается от шифрования?
-- [ ] Что такое JCA?
-- [ ] Что такое JCE?
-- [ ] Почему BCrypt, а не SHA?
-- [ ] Какие параметры BCrypt?
-- [ ] Что такое TLS?
-- [ ] Какие версии TLS?
-- [ ] Какие лучшие практики?
+| Проверка | Статус |
+|----------|--------|
+| Пароли хешируются BCrypt/Argon2 | ⬜ |
+| Шифрование — AES-256-GCM | ⬜ |
+| TLS 1.2+ для всех соединений | ⬜ |
+| Ключи не в коде | ⬜ |
+| SecureRandom вместо Random | ⬜ |
+| Регулярная ротация ключей | ⬜ |
 
-### Ответы на чек-лист
+### Комплаенс
 
-1. **Криптография** — наука о защите информации. Хеширование, шифрование, подпись.
+| Стандарт | Требование | Реализация |
+|----------|------------|------------|
+| PCI DSS | Шифрование данных карт | AES-256, TLS 1.2+ |
+| GDPR | Защита персональных данных | Шифрование, хеширование |
+| HIPAA | Шифрование PHI | AES-256, управление ключами |
+| NIST | Рекомендации алгоритмов | AES-256, SHA-256, RSA-2048+ |
 
-2. **Типы**: хеширование (SHA), симметричное (AES), асимметричное (RSA), подпись (ECDSA).
+## Вывод
 
-3. **Хеширование** — одностороннее. Нельзя восстановить. **Шифрование** — двустороннее. Можно расшифровать.
+Криптография в Java:
+1. **Хеширование** — SHA-256 для данных, BCrypt/Argon2 для паролей
+2. **Симметрия** — AES-256-GCM для шифрования
+3. **Асимметрия** — RSA-2048+ или ECC для ключей и подписей
+4. **TLS** — для защиты связи
+5. **Управление ключами** — KMS, Vault, HSM
 
-4. **JCA** — Java Cryptography Architecture. Архитектура криптографии в Java.
-
-5. **JCE** — Java Cryptography Extension. Расширение с дополнительными алгоритмами.
-
-6. **BCrypt**, потому что медленный. SHA быстрый — можно перебирать.
-
-7. **Параметры BCrypt**: salt (автоматический), cost (10-12), output (60 символов).
-
-8. **TLS** — Transport Layer Security. Протокол защиты связи.
-
-9. **Версии TLS**: 1.0 (устарел), 1.1 (устарел), 1.2 (минимум), 1.3 (рекомендуется).
-
-10. **Лучшие практики**: не изобретай, BCrypt/Argon2, AES-256-GCM, RSA-2048+, TLS 1.3, SecureRandom, KMS, обновлять.
+Правило: **не изобретай свою криптографию. Используй проверенные алгоритмы и библиотеки.**
 
 ---
-
 _Статья создана на основе анализа материалов Habr по криптографии в Java_
