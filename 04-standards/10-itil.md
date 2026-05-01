@@ -1,171 +1,226 @@
-# ITIL и ISO 20000: Управление ИТ-услугами
+# ITIL 4 и ISO 20000: Управление ИТ-услугами
 
-## Что такое ITIL и ISO 20000?
+## Часть 1: Что такое ITIL?
 
 Представь ресторан. В ресторане есть кухня, официанты, меню, заказы, доставка, жалобы. Всё должно работать слаженно: клиент заказал — официант передал — кухня приготовила — принесли — клиент доволен. Если клиент недоволен — менеджер решает проблему.
 
-**ITIL** — это именно такой "ресторан" для ИТ. Не про кухню и поваров, а про то, как предоставлять ИТ-услуги. Как принять заявку, как решить проблему, как внедрить изменение, как управлять инцидентом.
+**ITIL** — это именно такой «ресторан» для ИТ. Не про кухню и поваров, а про то, как предоставлять ИТ-услуги. Как принять заявку, как решить проблему, как внедрить изменение, как управлять инцидентом.
 
-ITIL расшифровывается как Information Technology Infrastructure Library. Разработан британским правительством. Текущая версия — ITIL 4 (2019).
+ITIL расшифровывается как Information Technology Infrastructure Library. Разработан британским правительством (OGC — Office of Government Commerce). Текущая версия — ITIL 4 (2019).
 
-**ISO 20000** — международный стандарт управления ИТ-услугами. Основан на ITIL, но формализован. Можно сертифицировать.
+**ISO 20000** — международный стандарт управления ИТ-услугами. Основан на ITIL, но формализован. Можно сертифицировать организацию.
 
-## Зачем нужны ITIL и ISO 20000?
+## Часть 2: Зачем нужны ITIL и ISO 20000?
 
 ### Ситуация 1: Хаос в ИТ-поддержке
 
-Сотрудник написал: "Не работает принтер". Заявка потерялась. Через неделю напомнил. Оказалось — забыли. Принтер всё ещё не работает.
+Сотрудник написал: «Не работает принтер». Заявка потерялась в почте. Через неделю напомнил. Оказалось — забыли. Принтер всё ещё не работает.
 
-ITIL вводит процессы: заявка → классификация → назначение → решение → закрытие. Ничего не теряется.
+ITIL вводит процессы: заявка → классификация → назначение → решение → закрытие. Ничего не теряется. SLA: 4 часа на решение.
 
 ### Ситуация 2: Изменения ломают систему
 
-Админ обновил сервер. Система упала. Никто не знал, что обновили. Не было процесса.
+Админ обновил сервер в пятницу вечером. Система упала. Никто не знал, что обновили. Не было процесса согласования.
 
-ITIL: Change Management. План → оценка → тест → одобрение → внедрение. Контролируемо.
+ITIL: Change Management. RFC (Request for Change) → оценка → CAB (Change Advisory Board) approval → тест → внедрение в окно обслуживания. Контролируемо.
 
 ### Ситуация 3: Доказательство качества
 
-Компания хочет показать клиентам: "Мы профессионально управляем ИТ". ISO 20000 — сертификат.
+Компания хочет показать клиентам: «Мы профессионально управляем ИТ». ISO 20000 — сертификат от аккредитованного органа.
 
-## ITIL 4: четыре измерения
+### Ситуация 4: Интеграция с безопасностью
 
-| Измерение | Описание | Пример |
-|-----------|----------|--------|
-| Организации и люди | Культура, навыки, коммуникация | Команда поддержки |
-| Информация и технологии | Информация, знания, сервисы | База знаний, CMDB |
-| Партнёры и поставщики | Отношения с внешними | Аутсорсинг, облако |
-| Потоки ценности | Процессы, workflow | Incident management |
+Инцидент безопасности (взлом) — это не просто «проблема», а **Security Incident**. ITIL определяет: как классифицировать, куда эскалировать, какие SLA.
 
-## ITIL 4: 34 практики
+## Часть 3: ITIL 4 — четыре измерения
 
-### Общие практики
+ITIL 4 смотрит на ИТ-услуги через 4 измерения:
 
-| Практика | Описание |
-|----------|----------|
-| Architecture Management | Управление архитектурой |
-| Continual Improvement | Непрерывное улучшение |
-| Information Security Management | Управление ИБ |
-| Knowledge Management | Управление знаниями |
-| Measurement and Reporting | Измерение и отчётность |
-| Organizational Change Management | Управление изменениями |
-| Portfolio Management | Управление портфелем |
-| Project Management | Управление проектами |
-| Relationship Management | Управление отношениями |
-| Risk Management | Управление рисками |
-| Service Financial Management | Финансовый менеджмент |
-| Strategy Management | Стратегический менеджмент |
-| Supplier Management | Управление поставщиками |
-| Workforce and Talent Management | Управление персоналом |
+| Измерение | Описание | Пример | Влияние на безопасность |
+|-----------|----------|--------|------------------------|
+| **Организации и люди** | Культура, навыки, коммуникация | Команда поддержки, обучение | Security awareness, training |
+| **Информация и технологии** | Информация, знания, сервисы | База знаний, CMDB, SIEM | Data classification, encryption |
+| **Партнёры и поставщики** | Отношения с внешними | Аутсорсинг, облако, MSP | Third-party risk, contracts |
+| **Потоки ценности** | Процессы, workflow | Incident management pipeline | Security incident handling |
 
-### Практики управления услугами
+## Часть 4: Service Value System (SVS)
 
-| Практика | Описание |
-|----------|----------|
-| Availability Management | Управление доступностью |
-| Business Analysis | Бизнес-анализ |
-| Capacity and Performance | Мощность и производительность |
-| Change Control | Управление изменениями |
-| Incident Management | Управление инцидентами |
-| IT Asset Management | Управление ИТ-активами |
-| Monitoring and Event Management | Мониторинг и события |
-| Problem Management | Управление проблемами |
-| Release Management | Управление релизами |
-| Service Catalogue Management | Каталог услуг |
-| Service Configuration | Конфигурация услуг |
-| Service Continuity | Непрерывность услуг |
-| Service Design | Проектирование услуг |
-| Service Desk | Служба поддержки |
-| Service Level Management | Управление уровнем услуг |
-| Service Request Management | Управление заявками |
-| Service Validation and Testing | Валидация и тестирование |
+```
+                    [Входы: возможности, потребности]
+                              |
+                              v
+                    [Guiding Principles] ←── [Governance]
+                              |                  |
+                              v                  |
+                    [Service Value Chain] ──────┘
+                              |
+                    ┌─────────┼─────────┐
+                    |         |         |
+                    v         v         v
+               [Practices] [Processes] [Roles]
+                              |
+                              v
+                    [Выходы: ценность]
+```
 
-### Технические практики
+### Guiding Principles (Руководящие принципы)
 
-| Практика | Описание |
-|----------|----------|
-| Deployment Management | Управление развёртыванием |
-| Infrastructure and Platform | Инфраструктура и платформа |
-| Software Development | Разработка ПО |
+| Принцип | Описание | Применение в ИБ |
+|---------|----------|----------------|
+| Focus on value | Фокус на ценности | ИБ-сервисы должны помогать бизнесу |
+| Start where you are | Начинай с текущего | Не «с нуля», а улучшай |
+| Progress iteratively | Прогресс итеративно | Incremental security improvements |
+| Collaborate and promote visibility | Сотрудничай | Security != отдельный остров |
+| Think and work holistically | Мысли системно | ИБ — часть всей системы |
+| Keep it simple and practical | Простота | Не перегружай процессы |
+| Optimize and automate | Оптимизируй и автоматизируй | SOAR, automated response |
 
-## ISO 20000: структура
+### Service Value Chain (Цепочка создания ценности)
 
-| Часть | Описание |
-|-------|----------|
-| ISO 20000-1 | Требования к системе управления |
-| ISO 20000-2 | Руководство по применению |
-| ISO 20000-3 | Руководство по определению области |
+| Активность | Описание | ИБ-пример |
+|------------|----------|-----------|
+| Plan | Планирование | Security planning, risk assessment |
+| Improve | Улучшение | Security improvements, patches |
+| Engage | Вовлечение | Security communication, training |
+| Design & Transition | Проектирование и переход | Secure design, change management |
+| Obtain/Build | Получение/строительство | Security tools, hardening |
+| Deliver & Support | Доставка и поддержка | Incident response, monitoring |
 
-## ITIL vs ISO 20000
+## Часть 5: Practices (Практики)
 
-| Критерий | ITIL | ISO 20000 |
-|----------|------|-----------|
-| Тип | Фреймворк (лучшие практики) | Стандарт (требования) |
-| Сертификация | Нет (есть для людей) | Да (для организаций) |
-| Фокус | Лучшие практики | Соответствие требованиям |
-| Версия | ITIL 4 (2019) | ISO 20000-1:2018 |
-| Применение | Рекомендации | Обязательные требования |
+ITIL 4 определяет 34 практики:
 
-## Интеграция с безопасностью
+### General Management Practices (14)
 
-| Практика ITIL | Связь с ИБ |
-|---------------|------------|
-| Information Security Management | Управление ИБ |
-| Incident Management | Управление security-инцидентами |
-| Change Control | Контроль изменений безопасности |
-| Problem Management | Анализ root cause инцидентов |
-| Knowledge Management | База знаний об угрозах |
-| Risk Management | Управление ИБ-рисками |
+| Практика | Описание | ИБ-аспект |
+|----------|----------|-----------|
+| Architecture Management | Управление архитектурой | Security architecture |
+| Continual Improvement | Непрерывное улучшение | Security metrics, improvement |
+| Information Security Management | Управление ИБ | **Центральная практика** |
+| Knowledge Management | Управление знаниями | Security runbook, playbooks |
+| Measurement and Reporting | Измерение | Security KPI, SLI |
+| Organizational Change Management | Управление изменениями | Security changes |
+| Portfolio Management | Управление портфелем | Security projects |
+| Project Management | Управление проектами | Security implementations |
+| Relationship Management | Управление отношениями | Vendor security |
+| Risk Management | Управление рисками | Security risk assessment |
+| Service Financial Management | Финансовый менеджмент | Security budget |
+| Strategy Management | Управление стратегией | Security strategy |
+| Supplier Management | Управление поставщиками | Third-party security |
+| Workforce and Talent Management | Управление персоналом | Security skills |
 
-## Ограничения
+### Service Management Practices (17)
 
-### ITIL — не стандарт
+| Практика | Описание | ИБ-аспект |
+|----------|----------|-----------|
+| Availability Management | Управление доступностью | DoS protection |
+| Capacity and Performance | Производительность | Resource exhaustion attacks |
+| Change Control | Управление изменениями | Security review |
+| Incident Management | Управление инцидентами | **Security incidents** |
+| IT Asset Management | Управление активами | Asset inventory |
+| Monitoring and Event Management | Мониторинг | SIEM, SOC |
+| Problem Management | Управление проблемами | Root cause analysis |
+| Release Management | Управление релизами | Secure deployment |
+| Service Catalogue | Каталог услуг | Security services |
+| Service Configuration | Конфигурация | CMDB, hardening |
+| Service Continuity | Непрерывность | DR, backup |
+| Service Design | Проектирование | Secure by design |
+| Service Desk | Служба поддержки | Security hotline |
+| Service Level Management | SLA | Security SLA |
+| Service Request Management | Запросы | Access requests |
+| Service Validation and Testing | Тестирование | Security testing |
+| Deployment Management | Развёртывание | Secure deployment |
 
-Это лучшие практики. Не обязательно для внедрения.
+### Technical Management Practices (3)
 
-### Бюрократия
+| Практика | Описание | ИБ-аспект |
+|----------|----------|-----------|
+| Deployment Management | Развёртывание | Secure CI/CD |
+| Infrastructure and Platform Management | Инфраструктура | Hardening, patching |
+| Software Development and Management | Разработка | SDLC, DevSecOps |
 
-34 практики. Много документов. Может замедлить.
+## Часть 6: ISO 20000
 
-### Не технический
+### Структура ISO 20000-1:2018
 
-Про процессы, не про технологии. Нужно дополнять.
+| Раздел | Описание |
+|--------|----------|
+| 4.1 | Understanding the organization and its context | Контекст, включая ИБ |
+| 4.2 | Understanding the needs and expectations | Требования, включая compliance |
+| 5.1 | Leadership and commitment | Лидерство в ИТ-услугах |
+| 6.1 | Actions to address risks and opportunities | Risk management |
+| 6.2 | Service management objectives | Цели, включая ИБ-цели |
+| 7.1 | Resources | Ресурсы для ИБ |
+| 7.2 | Competence | Компетенции (security skills) |
+| 7.5 | Documented information | Документация (политики, процедуры) |
+| 8.2 | Determination of requirements | Требования к услугам |
+| 8.3 | Design and development | Проектирование (secure by design) |
+| 8.5.1 | Change management | Управление изменениями |
+| 8.6.1 | Incident management | Управление инцидентами |
+| 8.6.3 | Problem management | Управление проблемами |
+| 8.7.1 | Service availability | Доступность (DoS protection) |
+| 9.1 | Monitoring, measurement, analysis | Мониторинг (SIEM) |
+| 9.2 | Internal audit | Внутренний аудит |
+| 9.3 | Management review | Обзор руководством |
+| 10.1 | Nonconformity and corrective action | Корректирующие действия |
 
-## Чек-лист понимания
+### ISO 20000 и ISO 27001
 
-- [ ] Что такое ITIL?
-- [ ] Что такое ISO 20000?
-- [ ] Какие 4 измерения ITIL 4?
-- [ ] Сколько практик в ITIL 4?
-- [ ] Какие ключевые практики?
-- [ ] В чём разница ITIL и ISO 20000?
-- [ ] Можно ли сертифицировать ITIL?
-- [ ] Можно ли сертифицировать ISO 20000?
-- [ ] Как ITIL связан с безопасностью?
-- [ ] Какие ограничения?
+| ISO 20000 | ISO 27001 | Пересечение |
+|-----------|-----------|-------------|
+| Управление ИТ-услугами | Управление ИБ | Risk management, Incident management |
+| Service continuity | Business continuity | DR, backup |
+| Change management | Change management | Security review |
+| Supplier management | Supplier relationships | Third-party security |
 
-### Ответы на чек-лист
+**Можно интегрировать:** ISO 20000 + ISO 27001 = полное покрытие ИТ + ИБ.
 
-1. **ITIL** — фреймворк управления ИТ-услугами. Лучшие практики по предоставлению ИТ-сервисов.
+## Часть 7: Security Incident Management в ITIL
 
-2. **ISO 20000** — международный стандарт управления ИТ-услугами. Можно сертифицировать.
+### Процесс Incident Management (с ИБ-фокусом)
 
-3. **4 измерения**: Организации и люди, Информация и технологии, Партнёры и поставщики, Потоки ценности.
+```
+[Detection] → [Logging] → [Categorization] → [Prioritization] → [Initial Diagnosis]
+                                                                      |
+                    [Major Incident?] ──ДА──→ [Major Incident Procedure]
+                          |
+                         НЕТ
+                          |
+                    [Investigation & Diagnosis] → [Resolution] → [Recovery] → [Closure]
+                                                                              |
+                                                                       [Review]
+```
 
-4. **34 практики** в ITIL 4.
+### Классификация инцидентов
 
-5. **Ключевые практики**: Service Desk, Incident Management, Problem Management, Change Control, Service Request Management.
+| Тип | Описание | Примеры | Приоритет |
+|-----|----------|---------|-----------|
+| Network incident | Проблема с сетью | Отказ маршрутизатора | P2 |
+| Server incident | Проблема с сервером | Перегрузка CPU | P2 |
+| Application incident | Проблема приложения | Ошибка 500 | P3 |
+| **Security incident** | **Угроза безопасности** | **Взлом, malware, утечка** | **P1** |
+| Service request | Запрос услуги | Новый доступ, пароль | P4 |
 
-6. **ITIL** — фреймворк (рекомендации, нет сертификации организации). **ISO 20000** — стандарт (требования, есть сертификация).
+### SLA для Security Incidents
 
-7. **Сертификации организации по ITIL нет**. Есть сертификации для людей (Foundation, Practitioner, Expert).
+| Приоритет | Время реакции | Время решения |
+|-----------|--------------|---------------|
+| P1 — Critical | 15 минут | 4 часа |
+| P2 — High | 30 минут | 8 часов |
+| P3 — Medium | 2 часа | 24 часа |
+| P4 — Low | 4 часа | 72 часа |
 
-8. **Да, ISO 20000 можно сертифицировать** для организации.
+## Вывод
 
-9. **ITIL и безопасность**: Information Security Management, Incident Management (security incidents), Change Control (контроль изменений), Risk Management.
+ITIL 4 + ISO 20000:
+1. **Фокус** — создание ценности через ИТ-услуги
+2. **4 измерения** — организация, информация, партнёры, потоки ценности
+3. **34 практики** — процессы для управления ИТ
+4. **SVS** — система создания ценности
+5. **ISO 20000** — формализация и сертификация
+6. **ИБ-интеграция** — Security Management как практика, Security Incidents как приоритет
 
-10. **Ограничения**: ITIL не стандарт, бюрократия (34 практики), не технический (процессы, не технологии).
+ITIL — язык бизнеса для ИТ. ISO 20000 — доказательство качества.
 
 ---
-
-_Статья создана на основе анализа материалов Habr по ITIL и ISO 20000_
+_Статья создана на основе анализа материалов по стандартам безопасности_
