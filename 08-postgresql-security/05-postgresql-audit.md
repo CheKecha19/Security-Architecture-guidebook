@@ -2,72 +2,63 @@
 
 ## Часть 1: Зачем нужен аудит?
 
-Представь, что в магазине произошла кража. Нет камер — нет доказательств. Есть камеры — можно понять: кто, когда, что взял.
+Представь магазин без камер. Кража — и непонятно, кто, когда, как. С камерами — всё видно.
 
-**Аудит в PostgreSQL** — это «камеры наблюдения» для базы данных. Записывает: кто и когда обращался к данным, что изменил, что удалил.
+**Аудит в PostgreSQL** — «камеры наблюдения» для базы данных. Записывает: кто подключался, что читал, что изменил, когда.
 
 ## Зачем нужен аудит?
 
 ### Ситуация 1: Расследование инцидента
 
-Клиенты жалуются: «Мои данные изменились!» Без аудита — невозможно понять: кто и когда вносил правки.
+Клиенты жалуются: «Мои данные изменились!» Без аудита — непонятно кто виноват. С аудитом — видно: `User:app` выполнил `UPDATE` в 14:35.
 
 ### Ситуация 2: Compliance (SOX)
 
-Аудиторы требуют: покажите, кто имел доступ к финансовым данным и что изменял. Без аудита — нарушение.
+Аудиторы требуют: покажите, кто имел доступ к финансовым данным. Аудит-логи — доказательство.
 
-### Ситуация 3: Анализ угроз
+### Ситуация 3: Подозрительная активность
 
-Подозрительная активность: необычно много запросов в 3 часа ночи. Аудит показывает: кто и откуда подключался.
+В 3 часа ночи — необычно много запросов от `User:app`. Аудит показывает: кто и откуда подключался.
 
-## Часть 2: Встроенные механизмы аудита
+## Часть 2: Встроенное логирование
 
 ### log_statement
 
     # postgresql.conf
-    log_statement = 'all'  -- Все команды
-    log_statement = 'ddl'  -- Только DDL
-    log_statement = 'mod'  -- DML (INSERT, UPDATE, DELETE)
-    log_statement = 'none' -- Ничего
+    log_statement = 'all'     -- Всё
+    log_statement = 'ddl'     -- Только DDL (CREATE, ALTER, DROP)
+    log_statement = 'mod'     -- DML (INSERT, UPDATE, DELETE)
 
-**Проблема:** логирует весь SQL, включая чувствительные данные (пароли, карты).
+**Проблема:** логирует весь SQL, включая чувствительные данные.
 
-### log_connections и log_disconnections
+### log_connections / log_disconnections
 
     # postgresql.conf
     log_connections = on
     log_disconnections = on
     
-    # Лог
-    LOG:  connection authorized: user=alice database=mydb application=psql
-    LOG:  disconnection: session time: 0:05:12 user=alice database=mydb
+    # Результат:
+    LOG:  connection authorized: user=alice database=mydb
+    LOG:  disconnection: session time: 0:05:12 user=alice
 
 ### log_line_prefix
 
     # Формат строки лога
     log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
     
-    # Результат
-    2024-01-15 10:30:00 [12345]: [1-1] user=alice,db=mydb,app=psql,client=10.0.0.5 LOG:  statement: SELECT * FROM users;
+    # 2024-01-15 10:30:00 [12345]: [1-1] user=alice,db=mydb,app=psql,client=10.0.0.5
 
 ## Часть 3: Расширение pgaudit
 
 ### Установка
 
-    # Установить расширение
     CREATE EXTENSION IF NOT EXISTS pgaudit;
     
-    # Настройка
     # postgresql.conf
     shared_preload_libraries = 'pgaudit'
     pgaudit.log = 'write, ddl'
-    pgaudit.log_catalog = off
     pgaudit.log_parameter = on
-    pgaudit.log_relation = on
     pgaudit.log_rows = on
-    pgaudit.log_statement = on
-    pgaudit.log_client = off
-    pgaudit.log_level = log
 
 ### Уровни логирования
 
@@ -75,12 +66,10 @@
 |----------|----------------|
 | none | Ничего |
 | read | SELECT, COPY FROM |
-| write | INSERT, UPDATE, DELETE, COPY TO |
+| write | INSERT, UPDATE, DELETE |
 | ddl | CREATE, ALTER, DROP |
 | role | GRANT, REVOKE |
 | function | EXECUTE |
-| misc | SET, SHOW, DISCARD, NOTIFY |
-| misc_set | SET (для безопасности) |
 | all | Всё |
 
 ### Примеры логов
@@ -93,37 +82,15 @@
     AUDIT: SESSION,1,1,WRITE,INSERT,TABLE,public.users,
     INSERT INTO users (name) VALUES ('alice')
     
-    -- SELECT
-    AUDIT: SESSION,1,1,READ,SELECT,TABLE,public.users,
-    SELECT * FROM users WHERE id = 1
-    
-    -- GRANT
-    AUDIT: SESSION,1,1,ROLE,GRANT,TABLE,public.users,
-    GRANT SELECT ON users TO analyst
-
-### Детальное логирование
-
     -- С параметрами
-    pgaudit.log_parameter = on
-    
-    -- Результат
-    AUDIT: SESSION,1,1,WRITE,INSERT,TABLE,public.users,
-    INSERT INTO users (name, email) VALUES ($1, $2)
-    PARAMETERS: [alice, alice@example.com]
-    
-    -- С количеством строк
-    pgaudit.log_rows = on
-    
-    -- Результат
-    AUDIT: SESSION,1,1,WRITE,UPDATE,TABLE,public.users,,
-    UPDATE users SET status = 'active'
-    ROWS: 150
+    AUDIT: ... INSERT INTO users (name) VALUES ($1)
+    PARAMETERS: [alice]
 
-## Часть 4: Аудит на уровне таблиц (trigger-based)
+## Часть 4: Trigger-based аудит
 
-### Audit trigger
+### Триггер для аудита изменений
 
-    -- Таблица для истории
+    -- Таблица истории
     CREATE TABLE audit_log (
         id bigserial PRIMARY KEY,
         table_name text NOT NULL,
@@ -162,109 +129,63 @@
 
 ### Просмотр истории
 
-    -- Кто и когда изменил запись
-    SELECT * FROM audit_log 
-    WHERE table_name = 'users' 
-    ORDER BY changed_at DESC;
+    -- Кто изменил запись
+    SELECT * FROM audit_log WHERE table_name = 'users';
     
     -- Что изменилось
-    SELECT 
-        changed_at,
-        changed_by,
+    SELECT changed_at, changed_by,
         old_data->>'name as old_name,
         new_data->>'name as new_name
-    FROM audit_log
-    WHERE table_name = 'users' AND operation = 'UPDATE';
+    FROM audit_log WHERE operation = 'UPDATE';
 
-## Часть 5: Централизация и SIEM
+## Часть 5: Централизация в SIEM
 
-### Логи в syslog
+### Syslog
 
     # postgresql.conf
-    logging_collector = on
     log_destination = 'syslog'
     syslog_facility = 'LOCAL0'
     syslog_ident = 'postgres'
 
-### Интеграция с SIEM
+### Filebeat + ELK
 
-| SIEM | Способ интеграции |
-|------|-------------------|
-| Splunk | Forwarder читает логи |
-| ELK (Elastic) | Filebeat → Logstash → Elasticsearch |
-| QRadar | Syslog collector |
-| ArcSight | SmartConnector |
-| Datadog | Agent собирает логи |
-
-### Пример: Filebeat для PostgreSQL
-
-    # filebeat.yml
     filebeat.inputs:
       - type: log
-        enabled: true
         paths:
           - /var/log/postgresql/*.log
         fields:
           service: postgresql
-        fields_under_root: true
     
     output.elasticsearch:
       hosts: ["http://localhost:9200"]
 
-### Мониторинг подозрительной активности
+### Мониторинг
 
     -- Запросы из необычных мест
     SELECT client_addr, usename, COUNT(*) 
     FROM pg_stat_activity 
     GROUP BY client_addr, usename;
-    
-    -- Пользователи без активности > 90 дней
-    SELECT usename, max(backend_start) as last_activity
-    FROM pg_stat_activity
-    GROUP BY usename;
 
 ## Лучшие практики
 
 | Практика | Описание |
 |----------|----------|
 | pgaudit | Обязательно для production |
-| Логи в SIEM | Централизация и анализ |
-| Ротация логов | Не переполнить диск |
-| Защита логов | Права 600, отдельный диск |
-| Аудит DDL | Всегда логировать |
-| Аудит прав | GRANT, REVOKE |
+| Логи в SIEM | Централизация |
+| Ротация | Не переполнить диск |
+| Защита логов | Права 600 |
 | Триггеры | Для критичных таблиц |
-| Мониторинг | Алерты на подозрительное |
-
-### Чек-лист
-
-| Проверка | Статус |
-|----------|--------|
-| pgaudit установлен и настроен | ⬜ |
-| Логируются DDL и DML | ⬜ |
-| Логи централизованы (SIEM) | ⬜ |
-| Ротация настроена | ⬜ |
-| Триггеры на критичных таблицах | ⬜ |
-| Мониторинг подозрительного | ⬜ |
-
-### Комплаенс
-
-| Стандарт | Требование | Реализация |
-|----------|------------|------------|
-| PCI DSS | Аудит доступа к данным карт | pgaudit + SIEM |
-| SOX | Аудит изменений финансовых данных | Триггеры + pgaudit |
-| HIPAA | Аудит доступа к PHI | pgaudit + мониторинг |
-| GDPR | Аудит обработки персональных данных | Полный аудит |
-| ISO 27001 | Логирование событий безопасности | SIEM + ротация |
+| Мониторинг | Алерты на аномалии |
 
 ## Вывод
 
-Аудит в PostgreSQL — обязательный элемент безопасности:
+Аудит в PostgreSQL:
 1. **pgaudit** — структурированные логи
 2. **Триггеры** — история изменений
-3. **SIEM** — централизация и анализ
+3. **SIEM** — централизация
+4. **Мониторинг** — аномалии
 
 Без аудита — нет visibility. Без visibility — нет безопасности.
 
 ---
-_Статья создана на основе анализа материалов Habr по PostgreSQL_
+_Статья создана на основе анализа материалов по PostgreSQL_
