@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "715e437fffe5f207",
+    "type": "split",
+    "children": [
+      {
+        "id": "c113b993e30f9c2e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "087e5d5b6a1a8f3a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "kafka/_progress.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "_progress"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "a59af33038da3348",
+    "type": "split",
+    "children": [
+      {
+        "id": "311bd0ae90c1b27d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "60488d0d723ff239",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "92680d27d5e1bb3a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "954c7bb49115a497",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "20c9df5f7fa472be",
+    "type": "split",
+    "children": [
+      {
+        "id": "6e1f46a0d0fd5cb2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "46e2aebf0c65edf2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "kafka/_progress.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки для _progress"
+            }
+          },
+          {
+            "id": "0c66f4abe1443957",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "kafka/_progress.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки из _progress"
+            }
+          },
+          {
+            "id": "4975dea9eae461c7",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "ff818003d47edc64",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "7a39cd297576d99b",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "kafka/_progress.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура _progress"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "087e5d5b6a1a8f3a",
+  "lastOpenFiles": [
+    "docker/01-history-evolution/03-design-decisions.md",
+    "apache/01-history-evolution/02-evolution.md",
+    "apache/01-history-evolution/01-history.md",
+    "kafka/09-real-world/03-anti-patterns.md",
+    "docker/01-history-evolution/01-history.md",
+    "docker/_progress.md",
+    "docker/_task.md",
+    "kafka/01-history-evolution/01-history.md",
+    "apache/_task.md",
+    "apache/_progress.md",
+    "kafka/09-real-world/01-case-studies.md",
+    "kafka/08-security/04-admin-security-practices.md",
+    "kafka/08-security/03-attack-surface.md",
+    "kafka/08-security/02-hardening.md",
+    "kafka/08-security/01-security-features.md",
+    "kafka/06-performance/01-performance-basics.md",
+    "kafka/05-development-api/04-testing.md",
+    "kafka/05-development-api/03-patterns.md",
+    "kafka/05-development-api/02-api-reference.md",
+    "kafka/05-development-api/01-client-libraries.md",
+    "kafka/04-software/04-enterprise.md",
+    "kafka/04-software/03-open-source.md",
+    "kafka/04-software/02-implementation.md",
+    "kafka/04-software/01-tools.md",
+    "kafka/03-tech/03-vs-alternatives.md",
+    "kafka/03-tech/02-ecosystem.md",
+    "docker/08-security",
+    "docker/10-future",
+    "docker/09-real-world",
+    "docker/07-operations",
+    "docker/06-performance",
+    "docker/05-development-api",
+    "docker/04-software",
+    "docker/03-tech",
+    "docker/02-basics",
+    "docker/01-history-evolution"
+  ]
+}
